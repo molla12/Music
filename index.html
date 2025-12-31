@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molla Song Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+/* --- (আপনার দেওয়া CSS) --- */
+:root{--sidebar-width:280px;--primary-color:#11ede6;--secondary-color:#d544ef;--sidebar-bg:#111827;--sidebar-hover:#1f2937;--text-light:#9ca3af;--border-color:#e5e7eb}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','Segoe UI',sans-serif;overflow-x:hidden}
+.gradient-bg{background:linear-gradient(135deg,var(--primary-color) 0%,var(--secondary-color) 100%)}
+.stat-card{transition:all .3s ease;border-radius:16px}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 10px 10px -5px rgba(0,0,0,.04)}
+/* Sidebar Styles */
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--sidebar-width);background:var(--sidebar-bg);transition:all .3s ease;z-index:1000;overflow-y:auto;box-shadow:2px 0 10px rgba(0,0,0,.1)}
+.sidebar-header{padding:2rem 1.5rem;border-bottom:1px solid #374151;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color))}
+.sidebar-header h5{color:white;font-weight:700;font-size:1.25rem;margin:0}
+.sidebar-nav{padding:1.5rem 0}
+.nav-item{margin:.25rem 1rem}
+.nav-link{display:flex;align-items:center;padding:.875rem 1rem;color:#cbd5e1;text-decoration:none;border-radius:12px;font-weight:500;transition:all .3s ease;position:relative}
+.nav-link:hover{background:var(--sidebar-hover);color:white;transform:translateX(4px)}
+.nav-link.active{background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:white;box-shadow:0 4px 12px rgba(102,126,234,.4)}
+.nav-link.active::before{content:'';position:absolute;left:-1rem;top:50%;transform:translateY(-50%);width:4px;height:24px;background:white;border-radius:2px}
+.nav-link i{width:20px;margin-right:12px;font-size:1.1rem}
+.sidebar-footer{position:absolute;bottom:0;left:0;right:0;padding:1.5rem;border-top:1px solid #374151}
+/* Main Content */
+.main-content{margin-left:var(--sidebar-width);min-height:100vh;background:#f8fafc;transition:margin-left .3s ease}
+/* top-header: Default visibility is controlled by JS/CSS */
+.top-header{background:white;border-bottom:1px solid var(--border-color);padding:1.5rem 2rem;position:sticky;top:0;z-index:999;backdrop-filter:blur(10px)}
+.content-area{padding:2rem}
+/* Mobile Styles */
+.mobile-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;display:none;opacity:0;transition:opacity .3s ease}
+.mobile-overlay.show{display:block;opacity:1}
+.mobile-header{display:none;background:white;padding:1rem 1.5rem;border-bottom:1px solid var(--border-color);position:sticky;top:0;z-index:1000}
+@media (max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.show{transform:translateX(0)}.main-content{margin-left:0}.mobile-header{display:flex;justify-content:space-between;align-items:center}.top-header{display:none}
+/* Mobile header handles it */
+.content-area{padding:1rem}}
+/* Custom Form Styles */
+.form-control:focus{border-color:var(--primary-color);box-shadow:0 0 0 .2rem rgba(102,126,234,.25)}
+.btn-primary{background:linear-gradient(135deg,var(--primary-color) 0%,var(--secondary-color) 100%);border:none;font-weight:600;padding:.75rem 1.5rem;border-radius:12px;transition:all .3s ease}
+.btn-primary:hover{background:linear-gradient(135deg,#5a6fd8 0%,#6a4190 100%);transform:translateY(-2px);box-shadow:0 8px 15px rgba(102,126,234,.4)}
+/* Card Styles */
+.dashboard-card{background:white;border-radius:16px;border:1px solid var(--border-color);transition:all .3s ease}
+.dashboard-card:hover{border-color:var(--primary-color);box-shadow:0 8px 25px rgba(102,126,234,.15)}
+/* Login Styles */
+.login-container{background:linear-gradient(135deg,var(--primary-color) 0%,var(--secondary-color) 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.login-card{background:white;border-radius:24px;padding:3rem;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);width:100%;max-width:420px}
+.login-icon{width:80px;height:80px;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 2rem}
+/* User Role Badge */
+.user-role-badge{background:linear-gradient(135deg,#10b981,#059669);color:white;padding:.25rem .75rem;border-radius:20px;font-size:.75rem;font-weight:600}
+.user-role-limited{background:linear-gradient(135deg,#06d2d9,#af06d9)}
+/* Hide elements when not logged in */
+.logged-in-only{display:none}
+/* Table Styles for Song List */
+.song-table{border-collapse:separate;border-spacing:0 10px}
+.song-table thead th{border-bottom:2px solid var(--border-color);padding:1rem .75rem}
+.song-table tbody tr{background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:box-shadow .2s ease}
+.song-table tbody tr:hover{box-shadow:0 4px 10px rgba(0,0,0,.1)}
+.song-table tbody td{padding:1rem .75rem;vertical-align:middle}
+/* -------------------- LOADING VIEW (SYNCHRONIZED) -------------------- */
+#loadingCircle{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:white; 
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    transition:opacity .5s ease;
+}
+#loadingCircle.hidden{opacity:0;pointer-events:none}
+
+/* For 'Loading Songs from Sheet...' style */
+.loading-text-container {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem; /* Smaller font for better fit */
+    font-weight: 600;
+    color: #003366; /* Darker text color */
+}
+
+.loading-spinner {
+    width: 24px; 
+    height: 24px; 
+    border: 3px solid rgba(0, 51, 102, 0.2); /* Dark blue border light opacity */
+    border-top: 3px solid #003366; /* Dark blue for spinning part */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+.loading-text-text {
+    color: #003366; 
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* -------------------- OTHER STYLES -------------------- */
+.topbar{display:flex;padding:12px;background:#fff;border-bottom:1px solid #ddd;gap:8px;justify-content:center}
+.topbar input{flex:1 1 300px;padding:8px 12px;border:1px solid #ccc;border-radius:999px;font-size:14px}
+.topbar button{padding:8px 16px;background:#003366;color:white;border:none;border-radius:999px;cursor:pointer}
+/* UPDATED CATEGORIES STYLES */
+.categories {
+    display: flex;
+    padding: 8px 5px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    overflow-x: hidden; /* By default hide scroll */
+    white-space: nowrap;
+    position: relative;
+}
+.categories-scroll-wrapper {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto; /* Enable scrolling only for categories */
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; /* Space for a subtle scrollbar */
+}
+.categories-scroll-wrapper::-webkit-scrollbar {
+    height: 4px;
+}
+.categories-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 999px;
+}
+.categories button{padding:5px 8px;background:linear-gradient(135deg,#e0e0e0,#f9f9f9);border:1px solid #ccc;border-radius:999px;cursor:pointer;font-size:15px;font-weight:500;box-shadow:0 2px 4px rgba(0,0,0,.1);transition:all .2s ease;flex-shrink:0}
+.categories button:hover{background:linear-gradient(135deg,#d0d0d0,#f0f0f0);transform:scale(1.03)}
+/* সক্রিয় বাটনের জন্য CSS এখানে যুক্ত করা হলো */
+.categories button.active{background:linear-gradient(135deg,var(--primary-color) 0%,var(--secondary-color) 100%);color:#ffffff;box-shadow:0 4px 8px rgba(0,0,0,.2);border:1px solid var(--primary-color)}
+/* Card View Styles (For Category Filtering) */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:16px}
+.card{background:white;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.05);padding:12px;display:flex;flex-direction:column;align-items:center}
+/* Updated for image placeholder support */
+.card img{width:100%;height:180px;object-fit:cover;border-radius:6px;cursor:pointer;transition:transform .2s ease; background-color: #eee; border: 1px solid #ddd;} 
+.card img:hover{transform:scale(1.03)}
+.card img.playable{cursor:pointer}
+.card h3{font-size:14px;margin:8px 0 4px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%}
+.card .author{font-size:12px;color:#666;text-align:center}
+.card .desc{font-size:12px;color:#555;margin-top:6px;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.actions{margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.reaction{display:flex;flex-direction:column;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#e0f7ff,#d0eaff);box-shadow:0 2px 4px rgba(0,0,0,.12);font-size:16px;cursor:pointer;transition:transform .2s ease}
+.reaction:hover{transform:scale(1.08)}
+.reaction .emoji{font-size:16px}
+.reaction .count{font-size:10px;font-weight:bold;color:#003366;margin-top:2px}
+/* ফেভারিট আইকন স্টাইল */
+.fav-reaction .emoji{font-size:20px}
+.fav-reaction[style*="color"] .emoji{filter:drop-shadow(0 0 1px #8A2BE2)}
+/* -------------------- LIST VIEW STYLES -------------------- */
+.song-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1px; /* Minimal gap */
+    padding: 0;
+    /* User requested not black, so we use a light background */
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.05);
+    margin: 16px; /* Match padding of original grid */
+}
+.song-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: white;
+    transition: background .2s ease;
+    cursor: pointer;
+}
+.song-list-item:hover {
+    background: #f7f7f7;
+}
+.song-list-item:last-child {
+    border-bottom: none;
+}
+.song-list-item .serial {
+    font-weight: 600;
+    color: #666;
+    width: 30px;
+    text-align: right;
+    margin-right: 15px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+.song-list-item .icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-right: 15px;
+    width: 30px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.song-list-item .title-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+.song-list-item .title-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.song-list-item .title-info p {
+    font-size: 0.85rem;
+    color: #999;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.song-list-item .actions {
+     margin-top: 0;
+     gap: 8px;
+     flex-shrink: 0;
+}
+/* Mobile adjustment for List View */
+@media (max-width: 576px) {
+    .song-list-container {
+        margin: 8px;
+    }
+    .song-list-item {
+        padding: 10px 12px;
+    }
+    .song-list-item .serial {
+        width: 20px;
+        margin-right: 8px;
+    }
+    .song-list-item .icon {
+        font-size: 1.3rem;
+        margin-right: 10px;
+        width: 25px;
+    }
+    .song-list-item .title-info h4 {
+        font-size: 0.9rem;
+    }
+    .song-list-item .title-info p {
+        font-size: 0.75rem;
+    }
+    .song-list-item .actions {
+         display: none; /* Hide reactions on very small screens for better space */
+    }
+}
+/* -------------------- NEW PLAYER STYLES (UPDATED) -------------------- */
+.full-player-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1f2937 0%,#000000 100%);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;color:white;padding:20px}
+.player-header{position:absolute;top:20px;left:20px;width:calc(100% - 40px);display:flex;justify-content:flex-start}
+.player-container{display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:450px;width:100%;padding:20px}
+.album-art-box{width:100%;padding-bottom:90%;position:relative;margin-bottom:40px;max-width:400px;max-height:400px;}
+.album-art{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);animation:pulse-art 6s infinite alternate; background-color: #333;} /* Added background for default art */
+@keyframes pulse-art{0%{transform:scale(1)}100%{transform:scale(.5)}}
+.player-info{text-align:center;margin-bottom:20px}
+
+/* -------------------- NEW PLAYER STYLES (UPDATED WITH MARQUEE) -------------------- */
+/* ... (Existing Player styles omitted for brevity) ... */
+
+/* MARQUEE CONTAINER STYLES (For Player Title) */
+.player-info h3 {
+    /* এটিই গানের নামের ফন্ট সাইজ। 1.8rem থেকে 1.4rem বা 1.5rem করে দেখুন। */
+    font-size:1.5rem; 
+    font-weight:700;
+    margin-bottom:5px;
+    color:var(--primary-color);
+    text-shadow:0 0 5px rgba(17,237,230,.5);
+    max-width: 100%; 
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: 1.2;
+    padding: 0 10px; 
+}
+
+/* ... (Marquee @keyframes and other styles remain the same) ... */
+
+/* Mobile Adjustments for Player */
+@media (max-width:500px){
+    /* এখানেও পরিবর্তন করা যেতে পারে, যেন মোবাইলে আরও ছোট দেখায় */
+    .player-container{max-width:100%;padding:10px}
+    .album-art-box{margin-bottom:20px}
+    .player-info h4{font-size:1.2rem} /* মোবাইলে 1.2rem করে দিলাম */
+    .player-info p{font-size:.9rem}
+    .control-btn.side i{font-size:1.8rem}
+    .control-btn.main i{font-size:3rem}
+}
+
+
+/* NEW Custom Seek Bar Styles */
+.custom-seek-bar-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 30px;
+    color: #fff;
+    font-size: 0.9rem;
+    gap: 10px;
+    user-select: none; /* Prevents text selection during drag */
+}
+
+#customSeekBar {
+    flex-grow: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #444; /* Darker track */
+    border-radius: 999px;
+    cursor: pointer;
+    margin: 0; /* Remove default margin */
+}
+
+/* Thumb (The circle that moves) */
+#customSeekBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #48b8e0; /* Blue color */
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(72, 184, 224, 0.5);
+}
+#customSeekBar::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #48b8e0;
+    cursor: pointer;
+    border: none;
+}
+
+
+/* UPDATED PLAYER CONTROLS STYLE */
+.player-controls{display:flex;align-items:center;justify-content:center;width:100%;gap:25px; margin-top: 20px;}
+.control-btn{background:none;border:none;color:white;cursor:pointer;transition:transform .2s ease,color .2s ease; padding: 10px;} /* Added padding for better hit area */
+.control-btn:focus{outline:none;box-shadow:none}
+.control-btn.side i{
+    font-size:2.5rem; /* Slightly larger side buttons */
+    color:#b0b0b0;
+    transition: color 0.2s ease;
+}
+.control-btn.side:hover i {
+    color: var(--primary-color); /* Hover color */
+}
+.control-btn.main i{
+    font-size:5rem; /* Larger main button */
+    color:var(--secondary-color);
+    filter:drop-shadow(0 0 15px rgba(213,68,239,.8)); /* Stronger shadow */
+}
+.control-btn.main:hover i {
+    transform: scale(1.05); /* Slight scale on main button hover */
+}
+.control-btn:hover{transform:scale(1.1)}
+/* Mobile Adjustments for Player */
+@media (max-width:500px){.player-container{max-width:100%;padding:10px}.album-art-box{margin-bottom:20px}.player-info h4{font-size:1.4rem}.player-info p{font-size:.9rem}.control-btn.side i{font-size:1.8rem}.control-btn.main i{font-size:3rem}}
+/* --- MINI-PLAYER STYLE (UPDATED DESIGN) --- */
+#miniPlayerBar{position:fixed;bottom:0;left:var(--sidebar-width);right:0;height:70px;background:#1a1a1a;color:white;z-index:1500;display:none;align-items:center;padding:0 15px;box-shadow:0 -5px 15px rgba(0,0,0,.4);transition:transform .3s ease, left .3s ease; cursor: pointer;}
+#miniPlayerBar.show{display:flex}
+@media (max-width:768px){#miniPlayerBar{left:0}}
+
+.mini-player-art {
+    width: 45px; 
+    height: 45px; 
+    border-radius: 5px; 
+    object-fit: cover; 
+    margin-right: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    background: #333; /* Fallback for icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.mini-player-info{
+    flex-grow:1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding-right:15px;
+    cursor:pointer;
+}
+.mini-player-title{
+    font-weight:700;
+    font-size:0.95rem; /* Slightly smaller for 30 chars */
+    color:var(--primary-color);
+}
+/* Mini player title only uses ellipsis for truncation, no marquee needed */
+.mini-player-title .marquee-text {
+    display: inline-block;
+}
+
+.mini-player-artist{
+    font-size:.8rem;
+    color:#bdc3c7;
+}
+
+/* NEW MINI-PLAYER CONTROLS */
+.mini-player-controls{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.mini-control-btn{
+    background:none;
+    border:none;
+    color:white;
+    font-size: 1.6rem;
+    cursor:pointer;
+    transition: transform .1s ease;
+    padding: 5px; /* Add padding for easier tap target */
+}
+.mini-control-btn:hover {
+    transform: scale(1.1);
+    color: var(--secondary-color);
+}
+
+.mini-control-btn.main i {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+}
+
+.p-4 {
+    
+    border-bottom-width: 50px;
+}
+.fs-3 {
+    font-size: calc(2.3rem + .6vw) !important;
+}
+
+</style>
+
+</head>
+
+<body>
+<div id="loginScreen" class="login-container d-none"><div class="login-card"><div class="login-icon"><i class="fas fa-music text-white" style="font-size: 2rem;"></i></div><div class="text-center mb-4"><h1 class="h3 font-weight-bold text-gray-800 mb-2">ASV SONG MANAGER</h1><p class="text-muted">Manage your song inventory efficiently</p></div><form id="loginForm" class="space-y-4"><div class="mb-3"><label for="username" class="form-label font-weight-medium">Username</label><input type="text" id="username" class="form-control form-control-lg" required placeholder="Enter your username"></div><div class="mb-4"><label for="password" class="form-label font-weight-medium">Password</label><input type="password" id="password" class="form-control form-control-lg" required placeholder="Enter your password"></div><div class="mb-3"><div class="form-check"><input type="checkbox" id="rememberMe" class="form-check-input" checked><label for="rememberMe" class="form-check-label">Keep me logged in</label></div></div><button type="submit" class="btn btn-primary btn-lg w-100"><i class="fas fa-sign-in-alt me-2"></i>Sign In</button></form>
+    <div class="text-center mt-3">
+        <button class="btn btn-link text-danger font-weight-bold p-0" onclick="showDashboard(true)">Go to Dashboard</button>
+    </div>
+</div></div><div id="dashboard" class="d-none"><div class="mobile-header"><button class="btn btn-link p-0 text-dark" onclick="toggleSidebar()"><i class="fas fa-bars fs-5"></i></button><h5 class="mb-0 text-primary font-weight-bold fs-3 flex-grow-1 text-center"><i class="fas fa-music me-2"></i>MR SONGS</h5><button class="btn btn-outline-danger btn-sm logged-in-only" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div><div class="mobile-overlay" onclick="toggleSidebar()"></div><div class="sidebar" id="sidebar"><div class="sidebar-header"><div id="sidebarTitleContainer"><h5><i class="fas fa-music me-2"></i>ASV PROJECT</h5><div class="d-flex justify-content-between align-items-center mt-2 logged-in-only" id="loggedInBadgeContainer"><small class="text-light opacity-75">Song Management</small><span id="userRoleBadge" class="user-role-badge">Guest</span></div><div class="mt-2 text-white" id="guestUserText"><small class="opacity-75" style="display:none;">You are browsing as a **Guest**.</small></div></div></div><div class="sidebar-nav"><div class="nav-item"><a class="nav-link active" href="#" onclick="showSection('overview', this)"><i class="fas fa-tachometer-alt"></i>Dashboard</a></div><div class="nav-item"><a class="nav-link" href="#" onclick="showPlayerScreen(this)"><i class="fas fa-play-circle me-3"></i>Music Player</a></div><hr class="text-white mx-4 mt-4 logged-in-only"><div class="nav-item admin-only" id="addSongsNav"><a class="nav-link" href="#" onclick="showSection('add-song', this)"><i class="fas fa-plus-circle"></i>Add Song</a></div><div class="nav-item admin-only" id="listSongsNav"><a class="nav-link" href="#" onclick="showSection('list-songs', this)"><i class="fas fa-list-alt"></i>List Songs</a></div><div class="nav-item mt-2"><a class="nav-link bg-primary text-white" href="#" onclick="showLoginScreen(this)"><i class="fas fa-sign-in-alt"></i><span id="loginButtonText">Admin Login</span></a></div></div><div class="sidebar-footer"><div class="text-center mb-3 logged-in-only"><small class="text-muted">Logged in as: <span id="currentUsername" class="text-light">Guest</span></small></div><div class="text-center mt-3"><small class="text-muted">© 2025 ASV SONG MANAGER</small></div></div></div><div class="main-content"><div class="top-header logged-in-only" id="topHeader"><div class="d-flex justify-content-between align-items-center w-100"><div><h2 class="h4 mb-1 text-gray-800 font-weight-bold">Welcome back, <span id="topHeaderUsername">Guest</span>!</h2><p class="text-muted mb-0" id="currentDate"></p></div><div class="d-flex align-items-center logged-in-only"><div class="me-3"><small class="text-muted">Status: </small><span class="badge bg-success">Live</span></div><button class="btn btn-outline-primary me-2" onclick="refresh()"><i class="fas fa-sync-alt me-1"></i>Refresh</button><button class="btn btn-outline-danger" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</button></div></div></div><div class="content-area"><div id="overview" class="section-content"><div class="mb-4"><h3 class="h5 font-weight-bold text-gray-800 mb-3">Song Management Overview</h3><div class="topbar"><input id="searchInput" type="text" placeholder="Search by title, author or category..." oninput="applyFilters()" /><button onclick="refresh()">Refresh</button></div>
+<div class="categories">
+    <button onclick="filterBy('all', this)">All Songs</button>
+    <button onclick="filterBy('fav', this)">💜 Favorites</button>
+    <div class="categories-scroll-wrapper" id="categoryList">
+        </div>
+</div>
+
+<div id="loadingCircle"><div class="loading-text-container"><div class="loading-spinner"></div><span class="loading-text-text" id="overviewLoadingText">Loading Songs from Sheet...</span></div></div> 
+
+
+
+<div id="bookGrid"></div> <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" style="position:fixed; bottom:80px; right:20px; background:#003366; color:white; border:none; border-radius:50%; width:40px; height:40px; font-size:20px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2);">⬆</button></div></div><div id="add-song" class="section-content d-none"><div class="dashboard-card"><div class="p-4 border-bottom"><h5 class="mb-0 font-weight-bold"><i class="fas fa-plus-circle text-success me-2"></i>Add New Song</h5></div><div class="p-4"><form id="songForm"><div class="row g-4"><div class="col-md-6"><label for="serialNo" class="form-label font-weight-medium">Serial Number</label><input type="number" id="serialNo" class="form-control" required placeholder="e.g. 101"></div><div class="col-md-6"><label for="title" class="form-label font-weight-medium">Title</label><input type="text" id="title" class="form-control" required placeholder="Song Title"></div><div class="col-md-6"><label for="author" class="form-label font-weight-medium">Author/Artist</label><input type="text" id="author" class="form-control" required placeholder="Artist Name"></div><div class="col-md-6"><label for="category" class="form-label font-weight-medium">Category</label><input type="text" id="category" class="form-control" required placeholder="e.g. Pop, Folk"></div><div class="col-md-6"><label for="imageUrl" class="form-label font-weight-medium">Image_URL</label><input type="url" id="imageUrl" class="form-control" placeholder="Optional image link"></div><div class="col-md-6"><label for="songUrl" class="form-label font-weight-medium">Song_URL</label><input type="url" id="songUrl" class="form-control" required placeholder="Direct song link"></div><div class="col-12"><label for="description" class="form-label font-weight-medium">Description</label><textarea id="description" class="form-control" rows="3" placeholder="Optional description of the song"></textarea></div></div><div class="mt-4"><button type="submit" class="btn btn-primary me-2"><i class="fas fa-plus me-2"></i>Add Song</button><button type="reset" class="btn btn-outline-secondary"><i class="fas fa-undo me-2"></i>Reset</button></div></form></div></div></div><div id="list-songs" class="section-content d-none"><div class="dashboard-card"><div class="p-4 border-bottom d-flex justify-content-between align-items-center"><h5 class="mb-0 font-weight-bold"><i class="fas fa-list-alt text-danger me-2"></i>All Songs List</h5><button class="btn btn-outline-primary btn-sm" onclick="fetchSongs()"><i class="fas fa-sync-alt me-1"></i>Refresh List</button></div><div class="p-4 border-bottom"><div class="input-group"><span class="input-group-text"><i class="fas fa-search"></i></span><input type="text" id="songSearchInput" class="form-control" placeholder="Search by Title, Author, or Category..." onkeyup="filterSongs()"></div></div><div class="p-4 table-responsive"><table class="table table-hover song-table"><thead><tr><th>#</th><th>Date</th><th>Title</th><th>Author</th><th>Category</th><th class="text-center">Actions</th></tr></thead><tbody id="songsTableBody"><tr><td colspan="6" class="text-center text-muted">Click 'Refresh List' or switch section to load songs.</td></tr></tbody></table></div></div></div></div></div><div class="full-player-screen" id="fullPlayerScreen"><div class="player-header"><button class="btn btn-light" onclick="closePlayer()"><i class="fas fa-arrow-left me-2"></i>Back To Dashboard</button></div><div class="player-container"><div class="album-art-box"><img id="playerArt" src="https://via.placeholder.com/400?text=Select+Song" alt="Album Art" class="album-art"></div><div class="player-info">
+    <h4 id="playerTitle">
+        <span id="playerTitleText">গান চলছে না</span>
+    </h4>
+    <p id="playerArtist">শুরু করতে একটি গানে ক্লিক করুন</p>
+</div>
+
+<div class="custom-seek-bar-container">
+    <span id="currentTimeDisplay">0:00</span>
+    <input type="range" id="customSeekBar" value="0" step="1" min="0" max="100">
+    <span id="durationDisplay">0:00</span>
+</div>
+<div class="player-controls">
+    <button class="control-btn side" onclick="playPrev()" title="Previous Song"><i class="fas fa-step-backward"></i></button>
+    <button class="control-btn main" id="playPauseBtn" onclick="togglePlayPause()" title="Play/Pause"><i class="fas fa-play-circle"></i></button>
+    <button class="control-btn side" onclick="playNext()" title="Next Song"><i class="fas fa-step-forward"></i></button>
+</div>
+<audio id="audioElement" controlsList="nodownload" class="d-none"></audio>
+</div></div>
+
+<div id="miniPlayerBar" onclick="showPlayerScreen(document.querySelector('.nav-item a[onclick*=\'showPlayerScreen\']'))">
+    <div id="miniPlayerArt" class="mini-player-art">
+         <i class="fas fa-music"></i>
+    </div>
+    <div class="mini-player-info">
+        <div id="miniPlayerTitle" class="mini-player-title">গান চলছে না</div>
+        <div id="miniPlayerArtist" class="mini-player-artist">শুরু করতে ক্লিক করুন</div>
+    </div>
+    <div class="mini-player-controls">
+        <button class="mini-control-btn" onclick="event.stopPropagation(); playPrev();"><i class="fas fa-backward-step"></i></button>
+        <button class="mini-control-btn main" id="miniPlayPauseBtn" onclick="event.stopPropagation(); togglePlayPause();"><i class="fas fa-play"></i></button>
+        <button class="mini-control-btn" onclick="event.stopPropagation(); playNext();"><i class="fas fa-forward-step"></i></button>
+    </div>
+</div>
+<div class="modal fade" id="editSongModal" tabindex="-1" aria-labelledby="editSongModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="editSongModalLabel"><i class="fas fa-edit me-2 text-info"></i>Edit Song Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><form id="editSongForm"><div class="modal-body"><input type="hidden" id="editRowId"><div class="row g-3"><div class="col-md-6"><label for="editSerialNo" class="form-label font-weight-medium">Serial Number</label><input type="number" id="editSerialNo" class="form-control" required></div><div class="col-md-6"><label for="editTitle" class="form-label font-weight-medium">Title</label><input type="text" id="editTitle" class="form-control" required></div><div class="col-md-6"><label for="editAuthor" class="form-label font-weight-medium">Author/Artist</label><input type="text" id="editAuthor" class="form-control" required></div><div class="col-md-6"><label for="editCategory" class="form-label font-weight-medium">Category</label><input type="text" id="editCategory" class="form-control" required></div><div class="col-md-6"><label for="editImageUrl" class="form-label font-weight-medium">Image_URL</label><input type="url" id="editImageUrl" class="form-control"></div><div class="col-md-6"><label for="editSongUrl" class="form-label font-weight-medium">Song_URL</label><input type="url" id="editSongUrl" class="form-control" required></div><div class="col-12"><label for="editDescription" class="form-label font-weight-medium">Description</label><textarea id="editDescription" class="form-control" rows="3"></textarea></div><div class="col-12"><small class="text-muted">Date Added: <span id="editDateAdded"></span></small></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div></form></div></div></div>
+
+    <script>
+    <script>
+    // আপনার Web App URL এখানে বসান
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYi8h5VBxy41qxJDcPNBqERci5dm8haHlwYwISt_ewPXK0QdUIAj7notIXwjsyPJwXg/exec";
+    const SECRET_TOKEN = "ASV_SONG_SECURE_TOKEN_2024";
+
+    // আধুনিক Fetch API কানেকশন ফাংশন
+    async function runGAS(action, payload = {}) {
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ token: SECRET_TOKEN, action, payload })
+            });
+            const result = await response.json();
+            if (result.success === false && result.message === "Unauthorized Access!") {
+                Swal.fire('Security Error', 'Token Mismatch!', 'error');
+                return null;
+            }
+            return result;
+        } catch (err) {
+            console.error(err);
+            return { success: false, message: "Network error. Check connection." };
+        }
+    }
+
+    // এখন যেখানে google.script.run ছিল, সেখানে runGAS ব্যবহার করা হলো
+    // উদাহরণ: refresh() ফাংশন
+    async function refresh() {
+        bookGrid.innerHTML = ''; 
+        showAndHideCircle(true, "Syncing Database..."); 
+        const data = await runGAS('getBooks');
+        if (data) {
+            allBooks = data;
+            currentPlaylist = allBooks.filter(book => book.Song_URL && book.Song_URL.startsWith('http'));
+            renderCategories();
+            filterBy('all', document.querySelector('.categories button[onclick*="filterBy(\'all\')"]')); 
+            restorePlaybackState();
+        }
+        showAndHideCircle(false);
+    }
+
+    
+        // --- GLOBAL VARIABLES ---
+        let currentUser = 'Guest';
+        let currentUserRole = 'GUEST';
+        let isAdmin = false;
+        let isUserLoggedIn = false;
+        const AUTH_STORAGE_KEY = 'asv_auth_data_songs';
+        const LOGIN_EXPIRY_DAYS = 30;
+        let allBooks = []; // This will now contain songs from both Sheet and Drive
+        let currentFilter = 'all';
+        let currentCategory = '';
+        let allSongs = []; // Used for the list-songs section
+        
+        // --- PLAYER GLOBAL VARIABLES ---
+        const audio = document.getElementById('audioElement');
+        const fullPlayerScreen = document.getElementById('fullPlayerScreen');
+        const playerTitle = document.getElementById('playerTitle');
+        const playerTitleText = document.getElementById('playerTitleText'); // New Element for marquee
+        const playerArtist = document.getElementById('playerArtist');
+        const playerArt = document.getElementById('playerArt');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        let currentSongIndex = -1; // বর্তমানে প্লেলিস্টে কোন গানটি চলছে তার index
+        let currentPlaylist = []; // বর্তমানে ড্যাশবোর্ডের ফিল্টার/সার্চ অনুযায়ী তৈরি প্লেলিস্ট
+        // UPDATED DEFAULT_COVER_URL
+        const DEFAULT_COVER_URL = 'https://res.cloudinary.com/dukooy5f1/image/upload/v1676877360/IMG_20230209_060336_335_zdwejn.jpg'; 
+
+        // --- MINI PLAYER/PERSISTENCE BAR ELEMENTS ---
+        const miniPlayerBar = document.getElementById('miniPlayerBar');
+        const miniPlayerTitle = document.getElementById('miniPlayerTitle');
+        const miniPlayerArtist = document.getElementById('miniPlayerArtist');
+        const miniPlayerArtDiv = document.getElementById('miniPlayerArt');
+        const miniPlayPauseBtn = document.getElementById('miniPlayPauseBtn');
+        
+        // --- CUSTOM SEEK BAR VARIABLES ---
+        const customSeekBar = document.getElementById('customSeekBar');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const durationDisplay = document.getElementById('durationDisplay');
+        let isSeeking = false;
+
+
+        // --- DOM Element References ---
+        const loadingCircle = document.getElementById('loadingCircle');
+        const categoryList = document.getElementById('categoryList');
+        const bookGrid = document.getElementById('bookGrid');
+        const searchInput = document.getElementById('searchInput');
+        // New elements for guest/admin UI control
+        const addSongsNav = document.getElementById('addSongsNav');
+        const listSongsNav = document.getElementById('listSongsNav');
+        const loggedInBadgeContainer = document.getElementById('loggedInBadgeContainer');
+        const guestUserText = document.getElementById('guestUserText');
+        const overviewLoadingText = document.getElementById('overviewLoadingText'); // Added for the text change
+
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentDate();
+            setInterval(updateCurrentDate, 60000);
+            checkSavedLogin();
+
+            showDashboard(false); // Do not force redirect to overview on initial load if login is required
+            
+            // Initial load message when starting up
+            bookGrid.innerHTML = '';
+            showAndHideCircle(true); // Always show loading on startup
+            
+            // Setup Form Submit Listener
+            const songForm = document.getElementById('songForm');
+            if (songForm) {
+                songForm.addEventListener('submit', handleSongFormSubmit);
+            }
+
+            // Setup Edit Form Submit Listener
+            const editSongForm = document.getElementById('editSongForm');
+            if (editSongForm) {
+                editSongForm.addEventListener('submit', handleEditFormSubmit);
+            }
+            
+            // Audio Event Listeners for player controls and Custom Seek Bar
+            audio.addEventListener('play', () => {
+                playPauseBtn.innerHTML = '<i class="fas fa-pause-circle"></i>';
+                updateMiniPlayerUI(true); // প্লে হচ্ছে, মিনি প্লেয়ার আপডেট
+            });
+            audio.addEventListener('pause', () => {
+                playPauseBtn.innerHTML = '<i class="fas fa-play-circle"></i>';
+                updateMiniPlayerUI(false); // পজ হয়েছে, মিনি প্লেয়ার আপডেট
+            });
+            audio.addEventListener('ended', () => {
+                playNext(); // গান শেষ হলে স্বয়ংক্রিয়ভাবে পরবর্তী গান প্লে করা
+            });
+            audio.addEventListener('error', (e) => {
+                console.error("Audio playback error:", e);
+                Swal.fire('Playback Error', 'Could not play the song. URL might be invalid or inaccessible.', 'error');
+                playNext(); // ত্রুটি হলেও পরবর্তী গান প্লে করার চেষ্টা করা
+            });
+            
+            // CUSTOM SEEK BAR LISTENERS
+            audio.addEventListener('loadedmetadata', () => {
+                customSeekBar.max = audio.duration;
+                durationDisplay.textContent = formatTime(audio.duration);
+                // Initial seek bar position
+                customSeekBar.value = audio.currentTime; 
+                // Initial seek bar color update
+                updateSeekBarUI(audio.currentTime, audio.duration);
+            });
+
+            audio.addEventListener('timeupdate', () => {
+                if (!isSeeking && !isNaN(audio.duration)) { 
+                    customSeekBar.value = audio.currentTime;
+                    updateSeekBarUI(audio.currentTime, audio.duration);
+                }
+                currentTimeDisplay.textContent = formatTime(audio.currentTime);
+            });
+
+            customSeekBar.addEventListener('input', () => {
+                isSeeking = true;
+                // Update time display and color while dragging
+                currentTimeDisplay.textContent = formatTime(customSeekBar.value);
+                updateSeekBarUI(customSeekBar.value, customSeekBar.max);
+            });
+
+            customSeekBar.addEventListener('change', () => {
+                isSeeking = false;
+                audio.currentTime = customSeekBar.value;
+            });
+
+
+            // *** সেশন সেভিং: প্লেব্যাকের অবস্থান সেভ করা ***
+            audio.addEventListener('timeupdate', savePlaybackPosition); 
+
+            // *** সোয়াইপ জেসচার লিসেনার যোগ করা ***
+            addSwipeGestureToPlayer();
+
+            // Initial data load for the 'overview' section if dashboard is the initial view
+            if (!document.getElementById('loginScreen').classList.contains('d-none')) {
+                // If login screen is showing, don't load data yet
+            } else if (document.getElementById('overview') && !document.getElementById('overview').classList.contains('d-none')) {
+                refresh();
+            }
+        });
+
+        // --- UTILITY FUNCTIONS (INCLUDES NEW PERSISTENCE) ---
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            const dateElement = document.getElementById('currentDate');
+            if (dateElement) {
+                dateElement.textContent = now.toLocaleDateString('en-US', options);
+            }
+        }
+
+        function handleError(error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred: ' + (error.message || error.toString()),
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+        
+        // Custom time formatter
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Custom Seek Bar UI Update function
+        function updateSeekBarUI(current, duration) {
+            const percentage = (current / duration) * 100;
+            // Matches the clean blue bar look from the image 120519.jpg
+            customSeekBar.style.background = `linear-gradient(to right, #48b8e0 0%, #48b8e0 ${percentage}%, #444 ${percentage}%, #444 100%)`;
+        }
+
+        // --- LOADING VIEW (UPDATED FOR SYNCHRONIZATION) ---
+        function showAndHideCircle(show, customText = "Loading Songs from Sheet...") {
+            if (!loadingCircle) return;
+            if (show) {
+                // Show the loading view
+                loadingCircle.classList.remove('hidden');
+                
+                // Set text content 
+                if (overviewLoadingText) {
+                    overviewLoadingText.textContent = customText;
+                }
+            } else {
+                // Hide the circle after a very short delay to ensure smooth UI transition
+                setTimeout(() => {
+                    loadingCircle.classList.add('hidden');
+                }, 100); 
+            }
+        }
+        
+        // --- PERSISTENCE & STATE MANAGEMENT ---
+        const LAST_SONG_INDEX_KEY = 'lastSongIndex';
+        const LAST_SONG_POSITION_KEY = 'lastSongPosition';
+
+        function savePlaybackPosition() {
+            // শুধুমাত্র যখন গান চলছে তখনই সেভ হবে
+            if (!audio.paused && currentSongIndex !== -1 && audio.currentTime > 0) {
+                localStorage.setItem(LAST_SONG_INDEX_KEY, currentSongIndex.toString());
+                localStorage.setItem(LAST_SONG_POSITION_KEY, audio.currentTime.toString());
+            }
+        }
+
+        function restorePlaybackState() {
+            const savedIndex = localStorage.getItem(LAST_SONG_INDEX_KEY);
+            const savedPosition = localStorage.getItem(LAST_SONG_POSITION_KEY);
+
+            if (savedIndex !== null && currentPlaylist.length > 0) {
+                currentSongIndex = parseInt(savedIndex);
+                const song = currentPlaylist[currentSongIndex];
+
+                if (song && song.Song_URL && song.Song_URL.startsWith('http')) {
+                    updateFullPlayerUI(song); 
+                    audio.src = song.Song_URL;
+                    audio.load();
+                    
+                    if (savedPosition !== null && !isNaN(parseFloat(savedPosition))) {
+                        // গানটিকে পজড অবস্থায় রাখা হলো, যাতে ইউজার নিজে প্লে করতে পারে
+                        audio.currentTime = parseFloat(savedPosition);
+                        // কাস্টম সিক বার UI আপডেট
+                        customSeekBar.value = parseFloat(savedPosition);
+                        durationDisplay.textContent = formatTime(audio.duration);
+                        currentTimeDisplay.textContent = formatTime(audio.currentTime);
+                        updateSeekBarUI(audio.currentTime, audio.duration);
+
+                    }
+                    // প্লেব্যাক স্টেট রিস্টোর হলে মিনি প্লেয়ার দেখান
+                    updateMiniPlayerUI(false); // পজড অবস্থায় দেখানো
+                }
+            }
+        }
+        
+        // --- MINI PLAYER (PERSISTENCE BAR) UPDATE (UPDATED) ---
+        function updateMiniPlayerUI(isPlaying) {
+            if (currentSongIndex !== -1 && currentPlaylist[currentSongIndex]) {
+                const song = currentPlaylist[currentSongIndex];
+                
+                // ১. Title Length (30 characters) - Marquee not applied here
+                const titleText = song.Title || 'Untitled';
+                miniPlayerTitle.textContent = titleText.length > 30 ? titleText.substring(0, 27) + '...' : titleText;
+                
+                miniPlayerArtist.textContent = song.Author || 'Unknown Artist';
+                
+                // ২. Mini Player Art/Icon Logic
+                miniPlayerArtDiv.innerHTML = ''; // Clear previous content
+                const imageUrl = song.Image_URL && song.Image_URL !== 'N/A' && song.Image_URL.startsWith('http') ? song.Image_URL : DEFAULT_COVER_URL;
+                
+                // শুধুমাত্র একটি IMG ট্যাগ ব্যবহার করা হলো
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = 'Art';
+                img.className = 'mini-player-art';
+                img.style.width = '100%'; 
+                img.style.height = '100%';
+                img.onerror = function() {
+                    this.onerror = null; 
+                    this.src = DEFAULT_COVER_URL; 
+                };
+                miniPlayerArtDiv.appendChild(img);
+                
+                // ৩. প্লে/পজ বাটন আপডেট
+                miniPlayPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+                
+                // ৪. মিনি প্লেয়ার দেখাও
+                if (isPlaying || audio.currentTime > 0) {
+                    miniPlayerBar.classList.add('show');
+                } else {
+                    miniPlayerBar.classList.remove('show');
+                }
+            } else {
+                // গান না চললে লুকিয়ে ফেলো
+                miniPlayerBar.classList.remove('show');
+            }
+        }
+
+        // *** FULL PLAYER UI (UPDATED WITH MARQUEE LOGIC) ***
+        function updateFullPlayerUI(song) {
+            const titleText = song.Title || 'Untitled';
+            
+            // Marquee Logic
+            playerTitleText.textContent = titleText;
+            playerTitle.classList.remove('marquee-active'); // Reset animation
+            
+            // যদি টাইটেল 40 অক্ষরের চেয়ে লম্বা হয়, তবে Marquee সক্রিয় করা
+            if (titleText.length > 40) {
+                 playerTitle.classList.add('marquee-active');
+            }
+            
+            playerArtist.textContent = song.Author || 'Unknown Artist';
+            
+            // Image_URL না থাকলে ডিফল্ট ছবি বসানো হলো
+            const imageUrl = song.Image_URL && song.Image_URL !== 'N/A' && song.Image_URL.startsWith('http') ? song.Image_URL : DEFAULT_COVER_URL;
+            playerArt.src = imageUrl;
+            // ত্রুটি হলে ডিফল্ট ছবি নিশ্চিত করা
+            playerArt.onerror = () => playerArt.src = DEFAULT_COVER_URL; 
+            
+            // Seek bar reset on new song load
+            currentTimeDisplay.textContent = '0:00';
+            durationDisplay.textContent = '0:00';
+            customSeekBar.value = 0;
+            updateSeekBarUI(0, 100);
+        }
+
+
+        // --- AUTHENTICATION & UI MANAGEMENT ---
+        function checkSavedLogin() {
+            try {
+                const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+                if (savedAuth) {
+                    const authData = JSON.parse(savedAuth);
+                    const now = new Date();
+                    const expiryDate = new Date(authData.expiry);
+                    if (now < expiryDate) {
+                        applyLoginData(authData);
+                        return;
+                    } else {
+                        localStorage.removeItem(AUTH_STORAGE_KEY);
+                    }
+                }
+                applyGuestData();
+            } catch (error) {
+                console.error('Error checking saved login:', error);
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+                applyGuestData();
+            }
+        }
+
+        function applyGuestData() {
+            currentUser = 'Guest';
+            currentUserRole = 'GUEST';
+            isAdmin = false;
+            isUserLoggedIn = false;
+            updateUIForUserRole();
+        }
+
+        function saveLoginData(loginData) {
+            try {
+                const rememberMe = document.getElementById('rememberMe').checked;
+                if (rememberMe) {
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + LOGIN_EXPIRY_DAYS);
+                    const authData = {
+                        username: loginData.username,
+                        role: loginData.role,
+                        expiry: expiryDate.toISOString(),
+                        loginTime: new Date().toISOString()
+                    };
+                    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+                }
+            } catch (error) {
+                console.error('Error saving login data:', error);
+            }
+        }
+
+        function applyLoginData(authData) {
+            currentUser = authData.username;
+            currentUserRole = authData.role;
+            isAdmin = authData.role === 'ALL';
+            isUserLoggedIn = true;
+            document.getElementById('currentUsername').textContent = currentUser;
+            document.getElementById('topHeaderUsername').textContent = currentUser;
+            const roleBadge = document.getElementById('userRoleBadge');
+            if (isAdmin) {
+                roleBadge.textContent = 'Admin';
+                roleBadge.className = 'user-role-badge';
+            } else {
+                roleBadge.textContent = 'Limited User';
+                roleBadge.className = 'user-role-badge user-role-limited';
+            }
+            updateUIForUserRole();
+        }
+
+        /**
+         * @param {boolean} forceOverview - If true, forces navigation to overview section.
+         */
+        function showDashboard(forceOverview = true) {
+            document.getElementById('loginScreen').classList.add('d-none');
+            document.getElementById('dashboard').classList.remove('d-none');
+            updateUIForUserRole();
+
+            // If forced to overview (e.g., from 'Go to Dashboard' button or initial load)
+            if (forceOverview) {
+                showSection('overview', document.querySelector('.nav-item a[onclick*="overview"]'));
+            }
+        }
+
+        function showLoginScreen(element) {
+            if (isUserLoggedIn) {
+                Swal.fire({
+                    title: 'Logged In',
+                    text: `You are already logged in as ${currentUser}. Do you want to logout?`,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Logout',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        logout();
+                    }
+                });
+                return;
+            }
+            
+            // গান বাজতে থাকলে তা বন্ধ করা
+            if (!audio.paused) {
+                audio.pause(); 
+            }
+            miniPlayerBar.classList.remove('show'); // মিনি প্লেয়ারও লুকিয়ে ফেলা
+            fullPlayerScreen.style.display = 'none';
+
+            document.getElementById('dashboard').classList.add('d-none');
+            document.getElementById('loginScreen').classList.remove('d-none');
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            if (element) element.classList.add('active');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            Swal.fire({
+                title: 'Authenticating...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            try {
+                google.script.run
+                    .withSuccessHandler(handleLoginResult)
+                    .withFailureHandler(handleError)
+                    .authenticateUser(username, password);
+            } catch (error) {
+                Swal.fire('Error', 'Connection error. Check Google Apps Script configuration.', 'error');
+            }
+        });
+
+        function handleLoginResult(result) {
+            Swal.close();
+            if (result.success) {
+                applyLoginData(result);
+                saveLoginData(result);
+                Swal.fire({
+                    title: 'Welcome!',
+                    text: `Login successful as ${isAdmin ? 'Admin' : 'Limited User'}`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    showDashboard();
+                    showSection('overview', document.querySelector('.nav-item a[onclick*="overview"]'));
+                });
+            } else {
+                Swal.fire('Error', result.message, 'error');
+            }
+        }
+
+        function logout() {
+            Swal.fire({
+                title: 'Logout',
+                text: 'Are you sure you want to logout?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, logout',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    try {
+                        localStorage.removeItem(AUTH_STORAGE_KEY);
+                        localStorage.removeItem(LAST_SONG_INDEX_KEY); 
+                        localStorage.removeItem(LAST_SONG_POSITION_KEY);
+                        
+                        // গান বন্ধ করা এবং প্লেয়ার হাইড করা
+                        if (!audio.paused) {
+                            audio.pause();
+                        }
+                        miniPlayerBar.classList.remove('show');
+                        fullPlayerScreen.style.display = 'none';
+                        currentSongIndex = -1; // প্লেব্যাক স্ট্যাটাস রিসেট
+                        
+                    } catch (error) {
+                        console.error('Error clearing login data:', error);
+                    }
+                    applyGuestData();
+                    showDashboard();
+                    document.getElementById('loginForm').reset();
+                    document.getElementById('rememberMe').checked = true;
+                    document.getElementById('sidebar').classList.remove('show');
+                    document.querySelector('.mobile-overlay').classList.remove('show');
+                    showSection('overview', document.querySelector('.nav-item a[onclick*="overview"]'));
+                    refresh();
+                }
+            });
+        }
+
+        function updateUIForUserRole() {
+            // Sidebar Elements
+            if(addSongsNav) addSongsNav.style.display = isUserLoggedIn && isAdmin ? '' : 'none';
+            if(listSongsNav) listSongsNav.style.display = isUserLoggedIn && isAdmin ? '' : 'none';
+            if(loggedInBadgeContainer) loggedInBadgeContainer.style.display = isUserLoggedIn ? 'flex' : 'none';
+            
+            // Guest-Specific Hide/Show (As requested, hide guest text)
+            if(guestUserText) guestUserText.style.display = 'none'; 
+
+            // Common Elements
+            const loggedInElements = document.querySelectorAll('.logged-in-only');
+            const loginButtonText = document.getElementById('loginButtonText');
+            const topHeader = document.getElementById('topHeader');
+
+            if (isUserLoggedIn) {
+                loggedInElements.forEach(element => element.style.display = '');
+                document.getElementById('topHeaderUsername').textContent = currentUser;
+                document.getElementById('currentUsername').textContent = currentUser;
+                loginButtonText.textContent = 'Logout';
+                loginButtonText.parentElement.classList.remove('bg-primary');
+                loginButtonText.parentElement.classList.add('bg-danger');
+                
+                // Hiding topHeader for mobile screen size only
+                if (topHeader) topHeader.style.display = window.innerWidth <= 768 ? 'none' : 'flex';
+                
+                // Remove redundant Login button from Admin Nav list
+                document.querySelector('.nav-item a[onclick*="showLoginScreen"]').parentElement.style.display = '';
+
+            } else {
+                // Guest View
+                loggedInElements.forEach(element => element.style.display = 'none');
+                document.getElementById('topHeaderUsername').textContent = 'Guest';
+                loginButtonText.textContent = 'Admin Login';
+                loginButtonText.parentElement.classList.remove('bg-danger');
+                loginButtonText.parentElement.classList.add('bg-primary');
+                
+                // Hiding topHeader for mobile screen size only
+                if (topHeader) topHeader.style.display = window.innerWidth <= 768 ? 'none' : 'flex';
+
+                
+                // Show ONLY Dashboard, Music Player and Admin Login for Guest
+                document.querySelector('.nav-item a[onclick*="showLoginScreen"]').parentElement.style.display = ''; // Show Admin Login Button
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector('.nav-item a[onclick*="overview"]').classList.add('active');
+
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        function showSection(sectionName, element) {
+            if (!isUserLoggedIn && (sectionName === 'add-song' || sectionName === 'list-songs')) {
+                Swal.fire('Access Denied', 'Please log in as an Admin to access this section.', 'warning');
+                return;
+            }
+            if ((sectionName === 'add-song' || sectionName === 'list-songs') && !isAdmin) {
+                Swal.fire('Permission Denied', 'You do not have the required permissions to access this feature.', 'error');
+                return;
+            }
+            
+            // সেকশন পরিবর্তন করলে শুধুমাত্র ফুল প্লেয়ার বন্ধ করা হবে। মিনি প্লেয়ারে গান চলতে থাকবে।
+            fullPlayerScreen.style.display = 'none'; 
+
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('d-none');
+            });
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            const section = document.getElementById(sectionName);
+            if (section) {
+                section.classList.remove('d-none');
+                if (sectionName === 'list-songs') {
+                    // Drive থেকে আসা গানগুলি List Songs এ দেখানো হবে না, কারণ সেগুলি Sheet এ সেভ করা নেই।
+                    document.getElementById('songSearchInput').value = '';
+                    fetchSongs();
+                } else if (sectionName === 'overview') {
+                    refresh();
+                }
+            }
+            if (element) {
+                element.classList.add('active');
+            }
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+        }
+
+        // -----------------------------------------------------------
+        // --- MUSIC PLAYER FUNCTIONS ---
+        // -----------------------------------------------------------
+
+        function showPlayerScreen(element) {
+            // সমস্ত সেকশন লুকিয়ে ফেলা
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('d-none');
+            });
+            // মিনি প্লেয়ার লুকিয়ে ফেলা
+            miniPlayerBar.classList.remove('show');
+            
+            // প্লেয়ার স্ক্রিন দেখানো
+            fullPlayerScreen.style.display = 'flex';
+            
+            // নেভিগেশন হাইলাইট করা
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            if (element) element.classList.add('active');
+
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+            // যদি প্লেলিস্ট লোড না থাকে, তবে প্রথম গানটি প্লে করার চেষ্টা
+            if (currentPlaylist.length > 0 && currentSongIndex === -1) {
+                // প্লেলিস্ট লোড হয়েছে কিন্তু গান চলছে না, প্রথম গান লোড করা হলো
+                loadAndPlaySong(0); 
+            } else if (currentPlaylist.length > 0 && currentSongIndex !== -1) {
+                 // গান চলছে, শুধুমাত্র UI আপডেট করা হলো
+                 updateFullPlayerUI(currentPlaylist[currentSongIndex]);
+                 updateMiniPlayerUI(!audio.paused);
+            } else if (currentPlaylist.length === 0) {
+                 Swal.fire('No Songs Loaded', 'Please go to the Dashboard and select a song to begin playing.', 'info');
+            }
+        }
+        
+        function loadAndPlaySong(index) {
+            if (index >= 0 && index < currentPlaylist.length) {
+                currentSongIndex = index;
+                const song = currentPlaylist[index];
+                
+                if (!song.Song_URL || song.Song_URL.trim() === '') {
+                    Swal.fire('Missing URL', 'This song does not have a playable URL.', 'warning');
+                    return;
+                }
+
+                // UI আপডেট: নাম, শিল্পী, ছবি, সিক বার রিসেট
+                updateFullPlayerUI(song);
+                
+                // অডিও লোড ও প্লে
+                audio.src = song.Song_URL;
+                audio.load();
+                
+                playPauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Loading icon
+                miniPlayPauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Loading icon
+
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Autoplay blocked, user must click play/pause button.", error);
+                        playPauseBtn.innerHTML = '<i class="fas fa-play-circle"></i>';
+                        miniPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        // যদি অটো-প্লে ব্লক হয়, তবে ফুল প্লেয়ার দেখিয়ে ইউজারকে প্লে করতে বলা
+                        fullPlayerScreen.style.display = 'flex';
+                        miniPlayerBar.classList.remove('show');
+                        updateMiniPlayerUI(false); // পজড অবস্থায় মিনি প্লেয়ার দেখান
+                    });
+                } else {
+                    fullPlayerScreen.style.display = 'flex';
+                    miniPlayerBar.classList.remove('show');
+                }
+                
+                // নিশ্চিত করা যে ফুল প্লেয়ার দৃশ্যমান
+                fullPlayerScreen.style.display = 'flex';
+                updateMiniPlayerUI(true); // বাজছে, তাই মিনি প্লেয়ার আপডেট
+            } else if (currentPlaylist.length > 0) {
+                loadAndPlaySong(0); 
+            } else {
+                Swal.fire('No Songs', 'Please load songs from the Dashboard first.', 'info');
+            }
+        }
+        
+        function togglePlayPause() {
+            if (currentSongIndex === -1 && currentPlaylist.length > 0) {
+                 // প্লেলিস্টে গান আছে, কিন্তু index সেট করা নেই
+                 loadAndPlaySong(0);
+                 return;
+            }
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        }
+
+        function playNext() {
+            if (currentPlaylist.length === 0) return;
+            let nextIndex = (currentSongIndex + 1) % currentPlaylist.length; // লুপ প্লেব্যাক
+            loadAndPlaySong(nextIndex);
+        }
+
+        function playPrev() {
+            if (currentPlaylist.length === 0) return;
+            let prevIndex = (currentSongIndex - 1 + currentPlaylist.length) % currentPlaylist.length; // লুপ প্লেব্যাক
+            loadAndPlaySong(prevIndex);
+        }
+
+        /**
+         * UPDATED closePlayer() FUNCTION
+         * ফুল প্লেয়ার বন্ধ করে মিনি প্লেয়ারে গান চালু রেখে ড্যাশবোর্ডে ফেরে।
+         */
+        function closePlayer() {
+            // ১. ফুল স্ক্রিন প্লেয়ার লুকিয়ে ফেলা
+            fullPlayerScreen.style.display = 'none';
+            
+            // ২. ড্যাশবোর্ড সেকশন দৃশ্যমান করা
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('d-none');
+            });
+            document.getElementById('overview').classList.remove('d-none'); 
+
+            // ৩. সাইডবার নেভিগেশন "Dashboard" এ অ্যাক্টিভ করা
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            document.querySelector('.nav-item a[onclick*="overview"]').classList.add('active');
+            document.querySelector('.nav-item a[onclick*="showPlayerScreen"]').classList.remove('active');
+
+
+            // ৪. গান বাজছে কিনা পরীক্ষা করা এবং মিনি প্লেয়ার দেখানো
+            if (!audio.paused && currentSongIndex !== -1) {
+                // গান চলছে, তাই মিনি প্লেয়ার দেখাও
+                updateMiniPlayerUI(true); 
+            } else if (audio.currentTime > 0 && currentSongIndex !== -1) {
+                 // গান পজ করা আছে, কিন্তু শুরু হয়েছিল, তাই মিনি প্লেয়ার দেখাও
+                updateMiniPlayerUI(false); 
+            } else {
+                // গান বাজছে না বা শুরুই হয়নি, তাই মিনি প্লেয়ার লুকিয়ে ফেলা
+                miniPlayerBar.classList.remove('show');
+            }
+        }
+
+        // -----------------------------------------------------------
+        // --- OVERVIEW GRID LOGIC ---
+        // -----------------------------------------------------------
+
+        function refresh() {
+            // bookGrid এর লোডিং টেক্সট সরিয়ে শুধুমাত্র লোডিং সার্কেল দেখানো হলো
+            bookGrid.innerHTML = ''; 
+            showAndHideCircle(true, "Loading Songs from Sheet..."); 
+
+            google.script.run
+                .withSuccessHandler(data => {
+                    allBooks = data;
+                    // গ্লোবাল প্লেলিস্টে সমস্ত গান লোড করা হলো (শুধুমাত্র বৈধ URL থাকলে)
+                    currentPlaylist = allBooks.filter(book => book.Song_URL && book.Song_URL.startsWith('http'));
+                    renderCategories();
+                    // applyFilters() এর আগে filterBy('all', document.querySelector('.categories button[onclick*="filterBy(\'all\')"]')) কল করা হলো
+                    filterBy('all', document.querySelector('.categories button[onclick*="filterBy(\'all\')"]')); 
+                    // গান লোড হওয়ার পরে সেভ করা স্টেট রিস্টোর করা
+                    restorePlaybackState(); 
+                    showAndHideCircle(false); // Hide after data load
+                })
+                .withFailureHandler(error => {
+                    console.error("Failed to fetch books for overview:", error);
+                    // Drive-এর জন্য অতিরিক্ত সতর্কতা
+                    const errorMessage = error.message || error.toString();
+                    if (errorMessage.includes('Authorization')) {
+                        Swal.fire('Authorization Required!', 'Google Drive access needs authorization. Please re-run any Apps Script function in the editor and grant permission.', 'error');
+                    }
+                    if (bookGrid) {
+                        bookGrid.innerHTML = `<p class="text-danger text-center"><i class="fas fa-exclamation-triangle me-2"></i>Error loading data: ${errorMessage}</p>`;
+                    }
+                    showAndHideCircle(false);
+                })
+                .getBooks();
+        }
+        
+        // Drive ক্যাটাগরিগুলি লোড করার জন্য এই ফাংশনটি আপডেট করা হলো
+        function renderCategories() {
+            if (!categoryList) return;
+            
+            // Load all unique categories from the combined allBooks array
+            const categories = {};
+            allBooks.forEach(book => {
+                const cat = book.Category?.trim();
+                if (cat) categories[cat] = (categories[cat] || 0) + 1;
+            });
+
+            // বিদ্যমান ক্যাটাগরি বাটনগুলি মুছে ফেলা হলো 
+            categoryList.innerHTML = '';
+
+            // All Songs বাটনের টেক্সট আপডেট
+            const allSongsBtn = document.querySelector('.categories button[onclick*="filterBy(\'all\')"]');
+            if (allSongsBtn) allSongsBtn.textContent = `All Songs (${allBooks.length})`;
+            
+            // Favorites বাটন নিশ্চিত করা হলো
+            const favBtn = document.querySelector('.categories button[onclick*="filterBy(\'fav\')"]');
+
+            Object.keys(categories).sort().forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = `${cat} (${categories[cat]})`;
+                btn.onclick = (e) => {
+                    currentFilter = 'category';
+                    currentCategory = cat;
+                    // এই বাটনটিকে সক্রিয় করা
+                    document.querySelectorAll('.categories button').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    applyFilters();
+                };
+                categoryList.appendChild(btn);
+            });
+            
+            // রেন্ডারিং শেষে সক্রিয় বাটন হাইলাইট করা হলো
+            if (currentFilter === 'all' && allSongsBtn) allSongsBtn.classList.add('active');
+            else if (currentFilter === 'fav' && favBtn) favBtn.classList.add('active');
+            else if (currentFilter === 'category') {
+                document.querySelectorAll('#categoryList button').forEach(btn => {
+                    if (btn.textContent.startsWith(currentCategory)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        function filterBy(type, element) {
+            currentFilter = type;
+            currentCategory = '';
+            
+            document.querySelectorAll('.categories button').forEach(btn => btn.classList.remove('active'));
+            if (element) {
+                element.classList.add('active');
+            }
+            
+            applyFilters();
+        }
+
+        // *** এই ফাংশনটি পরিবর্তিত হয়েছে: ডিফল্ট কভার ইমেজ যোগ করা হয়েছে ***
+        function applyFilters() {
+            if (!bookGrid) return;
+
+            const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+            let filtered = allBooks.filter(book => {
+                const text = `${book.Title} ${book.Author} ${book.Category}`.toLowerCase();
+                return text.includes(term);
+            });
+
+            if (currentFilter === 'fav') {
+                filtered = filtered.filter(book => book.Favorite?.toUpperCase() === 'Y');
+            } else if (currentFilter === 'category' && currentCategory) {
+                filtered = filtered.filter(book => book.Category?.trim() === currentCategory);
+            }
+
+            // গ্লোবাল প্লেলিস্ট আপডেট করা হলো
+            currentPlaylist = filtered.filter(book => book.Song_URL && book.Song_URL.startsWith('http'));
+
+            // --- NEW: Layout Control Based on Filter (List View for All/Fav, Card View for Categories) ---
+            const isListView = currentFilter === 'all' || currentFilter === 'fav';
+            
+            // Set the correct container class
+            if (isListView) {
+                bookGrid.className = 'song-list-container'; // নতুন লিস্ট ভিউ স্টাইল
+            } else {
+                bookGrid.className = 'grid'; // আগের কার্ড ভিউ স্টাইল
+            }
+            
+            bookGrid.innerHTML = '';
+
+            if (!filtered.length) {
+                bookGrid.innerHTML = '<p class="text-muted text-center no-results" style="padding: 16px;">No songs found matching the current criteria.</p>';
+                return;
+            }
+
+            filtered.forEach((book, index) => {
+                const isSheetSong = book.rowId < 10000;
+                const isFaved = book.Favorite?.toUpperCase() === 'Y';
+                
+                // --- অ্যাকশন হ্যান্ডলার (Fav বাটনের লজিক) ---
+                const favClickHandler = isSheetSong ? 
+                    (() => handleReaction('fav', book.rowId)) : 
+                    (() => Swal.fire('Action Restricted', 'Favorites can only be set on songs saved in the Google Sheet.', 'info'));
+                
+                // --- প্লে হ্যান্ডলার (ক্লিক টু প্লে লজিক) ---
+                const playClickHandler = () => {
+                    if (book.Song_URL && book.Song_URL.startsWith('http')) {
+                        const songIndexInPlaylist = currentPlaylist.findIndex(s => s.rowId === book.rowId);
+                        if (songIndexInPlaylist !== -1) {
+                            loadAndPlaySong(songIndexInPlaylist);
+                        } else {
+                            currentPlaylist = [book];
+                            loadAndPlaySong(0);
+                        }
+                    } else {
+                        Swal.fire('No Song_URL', 'No playable audio link provided for this entry.', 'info');
+                    }
+                };
+                
+                // ডিফল্ট ইমেজ লজিক
+                const imageUrl = book.Image_URL && book.Image_URL !== 'N/A' && book.Image_URL.startsWith('http') ? book.Image_URL : DEFAULT_COVER_URL;
+
+
+                // --- ১. লিস্ট ভিউ রেন্ডারিং (All Songs / Favorites) ---
+                if (isListView) {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'song-list-item';
+                    listItem.setAttribute('data-id', book.rowId);
+                    
+                    // প্লে-এর জন্য পুরো লিস্ট আইটেমে ক্লিক লিসেনার
+                    listItem.onclick = playClickHandler; 
+
+                    // Serial No
+                    const serial = document.createElement('div');
+                    serial.className = 'serial';
+                    // index + 1 ব্যবহার করা হলো ছবির সিরিয়ালের সাথে মিল রাখতে
+                    serial.textContent = index + 1; 
+                    listItem.appendChild(serial);
+                    
+                    // Icon (Dynamic based on category/type)
+                    const icon = document.createElement('div');
+                    icon.className = 'icon';
+                    const iconClass = book.Category?.toLowerCase().includes('new') ? 'fas fa-feather-alt' : (book.Song_URL ? 'fas fa-music' : 'fas fa-link-slash');
+                    const iconColor = book.Category?.toLowerCase().includes('bengali') ? '#10b981' : (book.Category?.toLowerCase().includes('urdu') ? '#06d2d9' : 'var(--primary-color)');
+                    icon.innerHTML = `<i class="${iconClass}" style="color: ${iconColor};"></i>`;
+                    listItem.appendChild(icon);
+                    
+                    // Title & Author/Category
+                    const titleInfo = document.createElement('div');
+                    titleInfo.className = 'title-info';
+                    const title = document.createElement('h4');
+                    title.textContent = book.Title || 'Untitled';
+                    titleInfo.appendChild(title);
+                    const author = document.createElement('p');
+                    author.textContent = `${book.Author || 'Unknown'} - ${book.Category || 'N/A'}`; 
+                    titleInfo.appendChild(author);
+                    listItem.appendChild(titleInfo);
+                    
+                    // Actions (Only Favorite button for simplicity in list view)
+                    const actions = document.createElement('div');
+                    actions.className = 'actions';
+                    actions.onclick = (e) => e.stopPropagation(); // লিস্ট আইটেমের প্লে ইভেন্ট বন্ধ করার জন্য
+
+                    const favBtn = document.createElement('div');
+                    favBtn.className = `reaction fav-reaction ${isSheetSong ? '' : 'disabled'}`;
+                    favBtn.onclick = favClickHandler;
+                    favBtn.innerHTML = `<div class="emoji">${isFaved ? '💜' : '🤍'}</div>`;
+                    if (isFaved) {
+                        favBtn.style.color = '#8A2BE2';
+                    }
+                    actions.appendChild(favBtn);
+
+                    listItem.appendChild(actions);
+                    bookGrid.appendChild(listItem);
+                    
+                } 
+                // --- ২. কার্ড ভিউ রেন্ডারিং (Category Filter) ---
+                else {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.setAttribute('data-id', book.rowId); 
+
+                    const img = document.createElement('img');
+                    img.src = imageUrl; // ডিফল্ট বা কভার ইমেজ
+                    img.alt = book.Title || 'Untitled Song';
+                    img.loading = 'lazy';
+                    img.onerror = function() {
+                        this.onerror = null; 
+                        this.src = DEFAULT_COVER_URL; // ত্রুটি হলে ডিফল্ট নিশ্চিত করা
+                    };
+
+                    img.onclick = playClickHandler; // প্লে হ্যান্ডলার ব্যবহার করা হলো
+                    img.className = 'playable';
+                    
+                    card.appendChild(img);
+
+                    const title = document.createElement('h3');
+                    title.textContent = book.Title || 'Untitled';
+                    title.title = book.Title || 'Untitled';
+                    card.appendChild(title);
+
+                    const author = document.createElement('div');
+                    author.className = 'author';
+                    author.textContent = book.Author || 'Unknown';
+                    card.appendChild(author);
+
+                    const desc = document.createElement('div');
+                    desc.className = 'desc';
+                    desc.textContent = (book.Description || '').substring(0, 100) + ((book.Description || '').length > 100 ? '...' : '');
+                    card.appendChild(desc);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'actions';
+                    
+                    // Fav Button
+                    const favBtn = document.createElement('div');
+                    favBtn.className = `reaction fav-reaction ${isSheetSong ? '' : 'disabled'}`;
+                    favBtn.onclick = favClickHandler; // অ্যাকশন হ্যান্ডলার ব্যবহার করা হলো
+                    favBtn.innerHTML = `<div class="emoji">${isFaved ? '💜' : '🤍'}</div>`;
+                    if (isFaved) {
+                        favBtn.style.color = '#8A2BE2';
+                    }
+                    actions.appendChild(favBtn);
+
+                    // Like Button
+                    const likeBtn = document.createElement('div');
+                    likeBtn.className = `reaction ${isSheetSong ? '' : 'disabled'}`;
+                    likeBtn.onclick = isSheetSong ? (() => handleReaction('like', book.rowId)) : (() => Swal.fire('Action Restricted', 'Reactions can only be tracked for songs saved in the Google Sheet.', 'info'));
+                    const likeCount = parseInt(book.Like) || 0;
+                    likeBtn.innerHTML = `<div class="emoji">👍</div><div class="count">${likeCount}</div>`;
+                    actions.appendChild(likeBtn);
+
+                    // Dislike Button
+                    const dislikeBtn = document.createElement('div');
+                    dislikeBtn.className = `reaction ${isSheetSong ? '' : 'disabled'}`;
+                    dislikeBtn.onclick = isSheetSong ? (() => handleReaction('dislike', book.rowId)) : (() => Swal.fire('Action Restricted', 'Reactions can only be tracked for songs saved in the Google Sheet.', 'info'));
+                    const dislikeCount = parseInt(book.Dislike) || 0;
+                    dislikeBtn.innerHTML = `<div class="emoji">👎</div><div class="count">${dislikeCount}</div>`;
+                    actions.appendChild(dislikeBtn);
+
+                    card.appendChild(actions);
+                    bookGrid.appendChild(card);
+                }
+            });
+        }
+        // --- END applyFilters() ---
+
+
+        function handleReaction(type, rowId) {
+            // শুধুমাত্র Sheet থেকে আসা গানের (rowId < 10000) জন্যই reaction ট্র্যাক করা হবে
+            if (rowId >= 10000) {
+                 Swal.fire('Action Restricted', 'Reactions can only be tracked for songs saved in the Google Sheet.', 'info');
+                 return;
+            }
+
+            if (!isUserLoggedIn) {
+                Swal.fire('Login Required', 'Please log in to leave a reaction.', 'warning');
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        const icon = type === 'fav' ? 'info' : 'success';
+                        const titleText = type === 'fav' ? 'Favorite Updated' : 'Counted!';
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: icon,
+                            title: titleText,
+                            showConfirmButton: false,
+                            timer: 1000
+                        });
+                    } else {
+                        Swal.fire("Error", "Error updating reaction: " + result.message, 'error');
+                    }
+                    refresh();
+                })
+                .withFailureHandler(error => {
+                    console.error(`Failed to update ${type} for book ${rowId}:`, error);
+                    Swal.fire("Error", "Error updating reaction: " + (error.message || error.toString()), 'error');
+                })
+                .updateFeedback(rowId, type);
+        }
+
+     
+        // --- ADD SONG LOGIC ---
+        async function handleSongFormSubmit(e) {
+            e.preventDefault();
+            if (!isAdmin) {
+                Swal.fire('Permission Denied', 'Only Admin can add songs.', 'error');
+                return;
+            }
+
+            const songData = {
+                serialNo: document.getElementById('serialNo').value,
+                title: document.getElementById('title').value,
+                author: document.getElementById('author').value,
+                category: document.getElementById('category').value,
+                imageUrl: document.getElementById('imageUrl').value,
+                songUrl: document.getElementById('songUrl').value,
+                description: document.getElementById('description').value,
+                favorite: 'N',
+            };
+
+            Swal.fire({
+                title: 'Adding Song...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                google.script.run
+                    .withSuccessHandler(result => {
+                        Swal.fire('Success!', result.message, 'success');
+                        document.getElementById('songForm').reset();
+                        refresh();
+                    })
+                    .withFailureHandler(handleError)
+                    .addSong(songData);
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        // --- LIST SONGS TABLE LOGIC ---
+        function fetchSongs() {
+            const tableBody = document.getElementById('songsTableBody');
+            if (!tableBody) return;
+            // Drive-এর গানগুলি Sheet-এ সেভ করা না থাকলে এখানে দেখানো হবে না
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-primary"><i class="fas fa-spinner fa-spin me-2"></i>Loading Songs from Sheet...</td></tr>`;
+
+            google.script.run
+                .withSuccessHandler(storeAndDisplaySongs)
+                .withFailureHandler(handleListSongsError)
+                .getSongsList();
+        }
+
+        function storeAndDisplaySongs(result) {
+            if (!result.success) {
+                handleListSongsError(result.message);
+                return;
+            }
+            allSongs = result.songs; // Sheet Songs
+            displaySongs(allSongs);
+        }
+
+        function handleListSongsError(error) {
+            const tableBody = document.getElementById('songsTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error fetching data: ${error.toString()}</td></tr>`;
+            }
+            handleError(error);
+        }
+
+        function filterSongs() {
+            const searchTerm = document.getElementById('songSearchInput').value.toLowerCase();
+            if (!searchTerm.trim()) {
+                displaySongs(allSongs);
+                return;
+            }
+            const filteredSongs = allSongs.filter(song => {
+                return (String(song.title).toLowerCase().includes(searchTerm) ||
+                    String(song.author).toLowerCase().includes(searchTerm) ||
+                    String(song.category).toLowerCase().includes(searchTerm));
+            });
+            displaySongs(filteredSongs);
+        }
+
+        function displaySongs(songsToDisplay) {
+            const tableBody = document.getElementById('songsTableBody');
+            tableBody.innerHTML = '';
+
+            if (songsToDisplay.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No songs found. ${allSongs.length > 0 ? '(Adjust your search)' : ''}</td></tr>`;
+                return;
+            }
+
+            songsToDisplay.forEach(song => {
+                const row = tableBody.insertRow();
+                const dateOnly = song.dateAdded ? song.dateAdded.split(' ')[0] : 'N/A';
+                row.innerHTML = `
+                    <td>${song.serialNo || ''}</td>
+                    <td><small class="text-muted">${dateOnly}</small></td>
+                    <td><a href="${song.songUrl || '#'}" target="_blank" class="text-decoration-none">${song.title}</a></td>
+                    <td>${song.author}</td>
+                    <td>${song.category}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-info me-2 ${isAdmin ? '' : 'disabled'}" onclick="editSong(${song.rowId})" title="Edit Song">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger ${isAdmin ? '' : 'disabled'}" onclick="confirmDeleteSong(${song.rowId}, '${song.title.replace(/'/g, "\\'")}')" title="Delete Song">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+            });
+        }
+
+        // --- EDIT & DELETE LOGIC ---
+        function editSong(rowId) {
+            if (!isAdmin) {
+                Swal.fire('Permission Denied', 'Only Admin can edit songs.', 'error');
+                return;
+            }
+            // Drive থেকে আসা গানের rowId (10000+) এডিট করা যাবে না
+            if (rowId >= 10000) {
+                 Swal.fire('Edit Restricted', 'Only songs saved in the Google Sheet can be edited.', 'info');
+                 return;
+            }
+            
+            Swal.fire({
+                title: 'Loading Data...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            google.script.run
+                .withSuccessHandler(loadEditForm)
+                .withFailureHandler(handleError)
+                .getSongById(rowId);
+        }
+
+        function loadEditForm(result) {
+            Swal.close();
+            if (!result.success) {
+                Swal.fire('Error', result.message, 'error');
+                return;
+            }
+            const song = result.song;
+            document.getElementById('editRowId').value = song.rowId;
+            document.getElementById('editSerialNo').value = song.serialNo || '';
+            document.getElementById('editTitle').value = song.title || '';
+            document.getElementById('editAuthor').value = song.author || '';
+            document.getElementById('editCategory').value = song.category || '';
+            document.getElementById('editImageUrl').value = song.imageUrl || '';
+            document.getElementById('editSongUrl').value = song.songUrl || '';
+            document.getElementById('editDescription').value = song.description || '';
+            document.getElementById('editDateAdded').textContent = song.dateAdded || 'N/A';
+
+            const editModal = new bootstrap.Modal(document.getElementById('editSongModal'));
+            editModal.show();
+        }
+
+        async function handleEditFormSubmit(e) {
+            e.preventDefault();
+            if (!isAdmin) {
+                Swal.fire('Permission Denied', 'Only Admin can edit songs.', 'error');
+                return;
+            }
+            const rowId = document.getElementById('editRowId').value;
+            // Drive থেকে আসা গানের rowId (10000+) এডিট করা যাবে না
+            if (rowId >= 10000) {
+                 Swal.fire('Edit Restricted', 'Only songs saved in the Google Sheet can be edited.', 'info');
+                 return;
+            }
+            
+            const songData = {
+                rowId: rowId,
+                Serial_Number: document.getElementById('editSerialNo').value,
+                Title: document.getElementById('editTitle').value,
+                Author: document.getElementById('editAuthor').value,
+                Category: document.getElementById('editCategory').value,
+                Image_URL: document.getElementById('editImageUrl').value,
+                Song_URL: document.getElementById('editSongUrl').value,
+                Description: document.getElementById('editDescription').value
+            };
+
+            Swal.fire({
+                title: 'Saving Changes...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                google.script.run
+                    .withSuccessHandler(result => {
+                        Swal.fire('Updated!', result.message, 'success');
+                        const editModalEl = document.getElementById('editSongModal');
+                        const modal = bootstrap.Modal.getInstance(editModalEl) || new bootstrap.Modal(editModalEl);
+                        modal.hide();
+                        fetchSongs();
+                        refresh();
+                    })
+                    .withFailureHandler(handleError)
+                    .updateSong(songData);
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function confirmDeleteSong(rowId, title) {
+            if (!isAdmin) {
+                Swal.fire('Permission Denied', 'Only Admin can delete songs.', 'error');
+                return;
+            }
+            // Drive থেকে আসা গানগুলি ডিলিট করা যাবে না, কারণ সেগুলি Sheet-এ সেভ করা নেই
+            if (rowId >= 10000) {
+                 Swal.fire('Deletion Restricted', 'Only songs saved in the Google Sheet can be deleted.', 'info');
+                 return;
+            }
+            
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete the song: "${title}". This cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteSong(rowId);
+                }
+            });
+        }
+
+        function deleteSong(rowId) {
+            Swal.fire({
+                title: 'Deleting...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        Swal.fire('Deleted!', result.message, 'success');
+                        fetchSongs();
+                        refresh();
+                    } else {
+                        Swal.fire('Error', result.message, 'error');
+                    }
+                })
+                .withFailureHandler(handleError)
+                .deleteSong(rowId, currentUser);
+        }
+        
+        // -----------------------------------------------------------
+        // --- SWIPE GESTURE LOGIC (FOR FULL PLAYER) ---
+        // -----------------------------------------------------------
+        function addSwipeGestureToPlayer() {
+            const playerContainer = document.getElementById('fullPlayerScreen');
+            let startX;
+            playerContainer.addEventListener('touchstart', (e) => {
+                if (fullPlayerScreen.style.display === 'flex') {
+                     startX = e.touches[0].clientX;
+                }
+            });
+
+
+            playerContainer.addEventListener('touchend', (e) => {
+                if (!startX || fullPlayerScreen.style.display !== 'flex') return;
+
+                const endX = e.changedTouches[0].clientX;
+                const diffX = endX - startX;
+                const swipeThreshold = 50; 
+
+                if (Math.abs(diffX) > swipeThreshold) {
+                    if (diffX > 0) {
+                        // ডান সোয়াইপ (Previous Song)
+                        playPrev();
+                    } else {
+                        // বাম সোয়াইপ (Next Song)
+                        playNext();
+                    }
+                }
+                startX = null;
+            });
+        }
+        
+        // Update UI when window is resized to handle desktop/mobile specific elements
+        window.addEventListener('resize', updateUIForUserRole);
+
+    </script>
+</body>
+
+</html>
