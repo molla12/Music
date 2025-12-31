@@ -499,44 +499,38 @@ body{font-family:'Inter','Segoe UI',sans-serif;overflow-x:hidden}
 
     <script>
     <script>
-    // আপনার Web App URL এখানে বসান
+      /* --- GitHub কানেকশন ব্রিজ (এটি আপনার অরিজিনাল কোড কাজ করাবে) --- */
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYi8h5VBxy41qxJDcPNBqERci5dm8haHlwYwISt_ewPXK0QdUIAj7notIXwjsyPJwXg/exec";
     const SECRET_TOKEN = "ASV_SONG_SECURE_TOKEN_2024";
 
-    // আধুনিক Fetch API কানেকশন ফাংশন
-    async function runGAS(action, payload = {}) {
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ token: SECRET_TOKEN, action, payload })
-            });
-            const result = await response.json();
-            if (result.success === false && result.message === "Unauthorized Access!") {
-                Swal.fire('Security Error', 'Token Mismatch!', 'error');
-                return null;
+    // এই অবজেক্টটি আপনার অরিজিনাল কোডের google.script.run কে রিপ্লেস করবে
+    window.google = {
+        script: {
+            run: {
+                withSuccessHandler: function(handler) { this.success = handler; return this; },
+                withFailureHandler: function(handler) { this.failure = handler; return this; },
+                _call: function(action, payload) {
+                    fetch(SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify({ token: SECRET_TOKEN, action: action, payload: payload })
+                    })
+                    .then(r => r.json())
+                    .then(d => this.success && this.success(d))
+                    .catch(e => this.failure && this.failure(e));
+                },
+                // আপনার অরিজিনাল ফাংশন ম্যাপার
+                authenticateUser: function(u, p) { this._call('authenticateUser', {username: u, password: p}); },
+                getBooks: function() { this._call('getBooks', {}); },
+                addSong: function(d) { this._call('addSong', {songData: d}); },
+                deleteSong: function(id, u) { this._call('deleteSong', {rowId: id, username: u}); },
+                updateFeedback: function(id, t) { this._call('updateFeedback', {rowId: id, type: t}); },
+                getSongById: function(id) { this._call('getSongById', {rowId: id}); },
+                updateSong: function(d) { this._call('updateSong', {songData: d}); },
+                getSongsList: function() { this._call('getSongsList', {}); }
             }
-            return result;
-        } catch (err) {
-            console.error(err);
-            return { success: false, message: "Network error. Check connection." };
         }
-    }
+    };
 
-    // এখন যেখানে google.script.run ছিল, সেখানে runGAS ব্যবহার করা হলো
-    // উদাহরণ: refresh() ফাংশন
-    async function refresh() {
-        bookGrid.innerHTML = ''; 
-        showAndHideCircle(true, "Syncing Database..."); 
-        const data = await runGAS('getBooks');
-        if (data) {
-            allBooks = data;
-            currentPlaylist = allBooks.filter(book => book.Song_URL && book.Song_URL.startsWith('http'));
-            renderCategories();
-            filterBy('all', document.querySelector('.categories button[onclick*="filterBy(\'all\')"]')); 
-            restorePlaybackState();
-        }
-        showAndHideCircle(false);
-    }
 
     
         // --- GLOBAL VARIABLES ---
