@@ -1,560 +1,411 @@
-<script>
-    /* 
-    ============================================================
-    🚀 ASV SONG MANAGER - FULL GITHUB COMPATIBLE SCRIPT
-    ============================================================
-    */
-
-    // --- ব্যাকেন্ড কনফিগারেশন (আপনার দেওয়া তথ্য অনুযায়ী) ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYi8h5VBxy41qxJDcPNBqERci5dm8haHlwYwISt_ewPXK0QdUIAj7notIXwjsyPJwXg/exec";
-    const SECRET_TOKEN = "ASV_SONG_MANAGER_PRO_2024"; 
-
-    /**
-     * ব্যাকেন্ডের সাথে যোগাযোগের মেইন ফাংশন।
-     * এটি google.script.run এর বিকল্প হিসেবে কাজ করবে।
-     */
-    async function runGAS(action, payload = {}) {
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    token: SECRET_TOKEN, 
-                    action: action, 
-                    payload: payload 
-                })
-            });
-            return await response.json();
-        } catch (err) {
-            console.error("Connection Error:", err);
-            return { success: false, message: "Network Error: Please check internet." };
-        }
-    }
-
-    // --- গ্লোবাল ভেরিয়েবলসমূহ (অরিজিনাল আইডি অনুযায়ী) ---
-    let currentUser = 'Guest';
-    let currentUserRole = 'GUEST';
-    let isAdmin = false;
-    let isUserLoggedIn = false;
-    const AUTH_STORAGE_KEY = 'asv_auth_data_songs';
-    const LOGIN_EXPIRY_DAYS = 30;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASV Song Management System</title>
+    <!-- ✅ FAVICON (TITLE LOGO) -->
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dukooy5f1/image/upload/v1685466452/my_logo_ao2nu4.png">
     
-    let allBooks = []; 
-    let currentFilter = 'all';
-    let currentCategory = '';
-    let allSongs = []; 
-    
-    // অডিও প্লেয়ার গ্লোবালস
-    const audio = document.getElementById('audioElement');
-    const fullPlayerScreen = document.getElementById('fullPlayerScreen');
-    const playerTitle = document.getElementById('playerTitle');
-    const playerTitleText = document.getElementById('playerTitleText'); 
-    const playerArtist = document.getElementById('playerArtist');
-    const playerArt = document.getElementById('playerArt');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    
-    let currentSongIndex = -1; 
-    let currentPlaylist = []; 
-    const DEFAULT_COVER_URL = 'https://res.cloudinary.com/dukooy5f1/image/upload/v1676877360/IMG_20230209_060336_335_zdwejn.jpg'; 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    // মিনি প্লেয়ার ও কাস্টম সিক বার এলিমেন্ট
-    const miniPlayerBar = document.getElementById('miniPlayerBar');
-    const miniPlayerTitle = document.getElementById('miniPlayerTitle');
-    const miniPlayerArtist = document.getElementById('miniPlayerArtist');
-    const miniPlayerArtDiv = document.getElementById('miniPlayerArt');
-    const miniPlayPauseBtn = document.getElementById('miniPlayPauseBtn');
-    
-    const customSeekBar = document.getElementById('customSeekBar');
-    const currentTimeDisplay = document.getElementById('currentTimeDisplay');
-    const durationDisplay = document.getElementById('durationDisplay');
-    let isSeeking = false;
+    <style>
+        /* --- অরিজিনাল CSS হুবহু বজায় রাখা হয়েছে --- */
+        :root{--sidebar-width:280px;--primary-color:#11ede6;--secondary-color:#d544ef;--sidebar-bg:#111827;--sidebar-hover:#1f2937;--text-light:#9ca3af;--border-color:#e5e7eb}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter','Segoe UI',sans-serif;overflow-x:hidden}
+        .gradient-bg{background:linear-gradient(135deg,var(--primary-color) 0%,var(--secondary-color) 100%)}
+        .stat-card{transition:all .3s ease;border-radius:16px}
+        .sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--sidebar-width);background:var(--sidebar-bg);transition:all .3s ease;z-index:1000;overflow-y:auto;box-shadow:2px 0 10px rgba(0,0,0,.1)}
+        .sidebar-header{padding:2rem 1.5rem;border-bottom:1px solid #374151;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color))}
+        .sidebar-header h5{color:white;font-weight:700;font-size:1.25rem;margin:0}
+        .main-content{margin-left:var(--sidebar-width);min-height:100vh;background:#f8fafc;transition:margin-left .3s ease}
+        .top-header{background:white;border-bottom:1px solid var(--border-color);padding:1.5rem 2rem;position:sticky;top:0;z-index:999;backdrop-filter:blur(10px)}
+        .song-table tbody tr{background:white;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+        #loadingCircle{position:fixed;top:0;left:0;width:100%;height:100%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:16px}
+        .card img{width:100%;height:180px;object-fit:cover;border-radius:6px;cursor:pointer}
+        /* Player Styles */
+        .player-info h4 {font-size:1.5rem; font-weight:700; color:var(--primary-color); overflow: hidden; white-space: nowrap;}
+        .marquee-active {animation: marquee 10s linear infinite;}
+        @keyframes marquee {0% { transform: translateX(100%); } 100% { transform: translateX(-100%); }}
+        #customSeekBar {width: 100%; height: 6px; background: #444; border-radius: 999px; cursor: pointer;}
+        .full-player-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1f2937 0%,#000000 100%);z-index:2000;display:none;flex-direction:column;align-items:center;justify-content:center;color:white}
+        #miniPlayerBar{position:fixed;bottom:0;left:var(--sidebar-width);right:0;height:70px;background:#1a1a1a;color:white;z-index:1500;display:none;align-items:center;padding:0 15px;cursor: pointer;}
+        @media (max-width:768px){#miniPlayerBar{left:0}}
+    </style>
+</head>
 
-    // DOM রেফারেন্স
-    const loadingCircle = document.getElementById('loadingCircle');
-    const categoryList = document.getElementById('categoryList');
-    const bookGrid = document.getElementById('bookGrid');
-    const searchInput = document.getElementById('searchInput');
+<body>
+    <!-- LOADING SCREEN -->
+    <div id="loadingCircle">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+        <span id="overviewLoadingText" class="mt-3 font-bold text-dark">Synchronizing System...</span>
+    </div>
 
-    // --- অ্যাপ ইনিশিয়ালাইজেশন ও লিসেনার ---
-    document.addEventListener('DOMContentLoaded', function() {
-        updateCurrentDate();
-        setInterval(updateCurrentDate, 60000);
-        checkSavedLogin();
-        showDashboard(false);
-        showAndHideCircle(true);
-        
-        // ফর্ম সাবমিট হ্যান্ডলার
-        document.getElementById('songForm')?.addEventListener('submit', handleSongFormSubmit);
-        document.getElementById('editSongForm')?.addEventListener('submit', handleEditFormSubmit);
-        
-        // অডিও ইভেন্ট লিসেনার
-        audio.addEventListener('play', () => {
-            playPauseBtn.innerHTML = '<i class="fas fa-pause-circle"></i>';
-            updateMiniPlayerUI(true);
-        });
-        audio.addEventListener('pause', () => {
-            playPauseBtn.innerHTML = '<i class="fas fa-play-circle"></i>';
-            updateMiniPlayerUI(false);
-        });
-        audio.addEventListener('ended', () => playNext());
-        
-        // কাস্টম সিক বার লজিক
-        audio.addEventListener('loadedmetadata', () => {
-            customSeekBar.max = audio.duration;
-            durationDisplay.textContent = formatTime(audio.duration);
-        });
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-container d-none">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <h1 class="h3 font-weight-bold text-gray-800">ASV SONG MANAGER</h1>
+            </div>
+            <form id="loginForm">
+                <input type="text" id="username" class="form-control mb-3" placeholder="Username" required>
+                <input type="password" id="password" class="form-control mb-4" placeholder="Password" required>
+                <button type="submit" class="btn btn-primary w-100">Sign In</button>
+            </form>
+            <div class="text-center mt-3"><button class="btn btn-link text-danger" onclick="showDashboard(true)">Guest Access</button></div>
+        </div>
+    </div>
 
-        audio.addEventListener('timeupdate', () => {
-            if (!isSeeking && !isNaN(audio.duration)) { 
-                customSeekBar.value = audio.currentTime;
-                updateSeekBarUI(audio.currentTime, audio.duration);
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="d-none">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <button class="btn btn-link" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <h5 class="mb-0 text-primary">MR SONGS</h5>
+            <button class="btn btn-outline-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+        <div class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h5>ASV PROJECT</h5></div>
+            <div class="sidebar-nav">
+                <a class="nav-link active" onclick="showSection('overview', this)"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+                <a class="nav-link" onclick="showPlayerScreen(this)"><i class="fas fa-play-circle me-2"></i>Music Player</a>
+                <div id="adminPanel" class="d-none">
+                    <hr class="text-white opacity-25">
+                    <a class="nav-link" onclick="showSection('add-song', this)"><i class="fas fa-plus-circle me-2"></i>Add Song</a>
+                    <a class="nav-link" onclick="showSection('list-songs', this)"><i class="fas fa-list-alt me-2"></i>List Songs</a>
+                </div>
+                <a class="nav-link bg-primary text-white mt-4" onclick="showLoginScreen(this)">Admin Login</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-header" id="topHeader">
+                <h2 class="h4 mb-0">Welcome, <span id="topHeaderUsername">Guest</span>!</h2>
+                <div class="d-flex gap-2"><button class="btn btn-outline-primary btn-sm" onclick="refresh()">Refresh</button><button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button></div>
+            </div>
+
+            <div class="content-area">
+                <div id="overview" class="section-content">
+                    <div class="topbar mb-4"><input id="searchInput" type="text" class="form-control rounded-pill" placeholder="Search title, artist..." oninput="applyFilters()"></div>
+                    <div class="categories mb-4 overflow-auto d-flex gap-2" id="categoryList"></div>
+                    <div id="bookGrid"></div>
+                </div>
+
+                <!-- ADD SONG -->
+                <div id="add-song" class="section-content d-none">
+                    <div class="dashboard-card p-4">
+                        <h5>Add New Song</h5>
+                        <form id="songForm" class="row g-3">
+                            <div class="col-md-6"><input type="text" id="serialNo" class="form-control" placeholder="Serial"></div>
+                            <div class="col-md-6"><input type="text" id="title" class="form-control" placeholder="Title" required></div>
+                            <div class="col-md-6"><input type="text" id="author" class="form-control" placeholder="Artist" required></div>
+                            <div class="col-md-6"><input type="text" id="category" class="form-control" placeholder="Category" required></div>
+                            <div class="col-md-6"><input type="url" id="imageUrl" class="form-control" placeholder="Image URL"></div>
+                            <div class="col-md-6"><input type="url" id="songUrl" class="form-control" placeholder="Song URL" required></div>
+                            <div class="col-12"><textarea id="description" class="form-control" placeholder="Description"></textarea></div>
+                            <button type="submit" class="btn btn-primary">Save Song</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- LIST SONGS -->
+                <div id="list-songs" class="section-content d-none">
+                    <div class="dashboard-card p-4 table-responsive">
+                        <table class="table"><thead class="table-dark"><tr><th>#</th><th>Title</th><th>Artist</th><th>Actions</th></tr></thead><tbody id="songsTableBody"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL PLAYER -->
+    <div class="full-player-screen" id="fullPlayerScreen">
+        <div class="player-header p-4"><button class="btn btn-light btn-sm" onclick="closePlayer()">Back</button></div>
+        <div class="album-art-box"><img id="playerArt" src="" class="album-art"></div>
+        <div class="player-info text-center mt-4"><h4 id="playerTitle">Select Song</h4><p id="playerArtist">Artist</p></div>
+        <div class="px-5 w-100 d-flex align-items-center gap-3">
+            <span id="currentTimeDisplay">0:00</span>
+            <input type="range" id="customSeekBar" value="0">
+            <span id="durationDisplay">0:00</span>
+        </div>
+        <div class="player-controls mt-4 d-flex align-items-center gap-5">
+            <button class="control-btn" onclick="playPrev()"><i class="fas fa-backward fa-2x"></i></button>
+            <button class="control-btn main" id="playPauseBtn" onclick="togglePlayPause()"><i class="fas fa-play-circle fa-5x"></i></button>
+            <button class="control-btn" onclick="playNext()"><i class="fas fa-forward fa-2x"></i></button>
+        </div>
+        <audio id="audioElement"></audio>
+    </div>
+
+    <!-- MINI PLAYER -->
+    <div id="miniPlayerBar" onclick="showPlayerScreen()">
+        <div id="miniPlayerArt" class="me-3" style="width:45px; height:45px; border-radius:5px; background:#333; overflow:hidden"></div>
+        <div class="flex-grow-1"><div id="miniPlayerTitle" class="fw-bold text-truncate" style="max-width:200px">Title</div><div id="miniPlayerArtist" class="small opacity-50">Artist</div></div>
+        <div class="d-flex gap-3">
+            <button class="btn btn-link text-white p-0" onclick="event.stopPropagation(); playPrev()"><i class="fas fa-backward"></i></button>
+            <button class="btn btn-link text-white p-0" onclick="event.stopPropagation(); togglePlayPause()"><i class="fas fa-play" id="miniPlayIcon"></i></button>
+            <button class="btn btn-link text-white p-0" onclick="event.stopPropagation(); playNext()"><i class="fas fa-forward"></i></button>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal fade" id="editSongModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content"><form id="editSongForm"><div class="modal-body">
+                <input type="hidden" id="editRowId">
+                <input type="text" id="editSerialNo" class="form-control mb-2" placeholder="Serial">
+                <input type="text" id="editTitle" class="form-control mb-2" placeholder="Title" required>
+                <input type="text" id="editAuthor" class="form-control mb-2" placeholder="Artist" required>
+                <input type="text" id="editCategory" class="form-control mb-2" placeholder="Category" required>
+                <input type="url" id="editImageUrl" class="form-control mb-2" placeholder="Image URL">
+                <input type="url" id="editSongUrl" class="form-control mb-2" placeholder="Song URL" required>
+                <textarea id="editDescription" class="form-control" placeholder="Description"></textarea>
+            </div><div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div></form></div>
+        </div>
+    </div>
+
+    <script>
+        // --- ব্যাকেন্ড লিঙ্ক ও টোকেন ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYi8h5VBxy41qxJDcPNBqERci5dm8haHlwYwISt_ewPXK0QdUIAj7notIXwjsyPJwXg/exec";
+        const SECRET_TOKEN = "ASV_SONG_MANAGER_PRO_2024";
+
+        // মেইন ফাংশন (google.script.run এর বদলে)
+        async function runGAS(action, payload = {}) {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ token: SECRET_TOKEN, action, payload })
+                });
+                return await response.json();
+            } catch (err) {
+                return { success: false, message: "Network error" };
             }
-            currentTimeDisplay.textContent = formatTime(audio.currentTime);
-            savePlaybackPosition();
-        });
+        }
 
-        customSeekBar.addEventListener('input', () => {
-            isSeeking = true;
-            currentTimeDisplay.textContent = formatTime(customSeekBar.value);
-            updateSeekBarUI(customSeekBar.value, customSeekBar.max);
-        });
+        // --- গ্লোবাল ভেরিয়েবলসমূহ ---
+        let allBooks = [];
+        let currentPlaylist = [];
+        let currentSongIndex = -1;
+        let isUserLoggedIn = false;
+        let isAdmin = false;
+        let currentUser = 'Guest';
+        const AUTH_KEY = 'asv_song_auth_v1';
+        const audio = document.getElementById('audioElement');
+        const customSeekBar = document.getElementById('customSeekBar');
+        let isSeeking = false;
+        const DEFAULT_IMG = 'https://res.cloudinary.com/dukooy5f1/image/upload/v1676877360/IMG_20230209_060336_335_zdwejn.jpg';
 
-        customSeekBar.addEventListener('change', () => {
-            isSeeking = false;
-            audio.currentTime = customSeekBar.value;
-        });
-
-        // সোয়াইপ এবং প্রাথমিক লোড
-        addSwipeGestureToPlayer();
-        refresh(); 
-    });
-
-    // --- ডাটা কন্ট্রোল ফাংশনসমূহ ---
-
-    async function refresh() {
-        showAndHideCircle(true, "Synchronizing Library...");
-        const data = await runGAS('getBooks');
-        allBooks = data || [];
-        currentPlaylist = allBooks.filter(book => book.Song_URL && book.Song_URL.startsWith('http'));
-        
-        renderCategories();
-        filterBy('all', document.querySelector('.categories button[onclick*="all"]')); 
-        restorePlaybackState();
-        showAndHideCircle(false);
-    }
-
-    async function handleLoginSubmit(e) {
-        e.preventDefault();
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        Swal.fire({title: 'Authenticating...', didOpen: () => Swal.showLoading()});
-        
-        const res = await runGAS('authenticateUser', {username: u, password: p});
-        Swal.close();
-        if (res.success) {
-            applyLoginData(res);
-            saveLoginData(res);
-            Swal.fire({title: 'Welcome!', icon: 'success', timer: 1500, showConfirmButton: false});
-            showDashboard();
+        // --- ইনিশিয়ালাইজেশন ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
             refresh();
-        } else {
-            Swal.fire('Error', res.message, 'error');
-        }
-    }
-    document.getElementById('loginForm').onsubmit = handleLoginSubmit;
-
-    async function handleReaction(type, rowId) {
-        if (rowId >= 10000) { 
-            Swal.fire({toast: true, position: 'top-end', title: 'Drive song: Reactions not saved', icon: 'info', timer: 2000, showConfirmButton: false});
-            return; 
-        }
-        if (!isUserLoggedIn) { Swal.fire('Login Required', 'Please sign in.', 'warning'); return; }
-        
-        const res = await runGAS('updateFeedback', {rowId, type});
-        if(res.success) refresh();
-    }
-
-    async function handleSongFormSubmit(e) {
-        e.preventDefault();
-        const songData = {
-            serialNo: document.getElementById('serialNo').value,
-            title: document.getElementById('title').value,
-            author: document.getElementById('author').value,
-            category: document.getElementById('category').value,
-            imageUrl: document.getElementById('imageUrl').value,
-            songUrl: document.getElementById('songUrl').value,
-            description: document.getElementById('description').value
-        };
-        Swal.showLoading();
-        const res = await runGAS('addSong', {songData});
-        Swal.fire('Success', res.message, 'success');
-        document.getElementById('songForm').reset();
-        refresh();
-    }
-
-    async function fetchSongs() {
-        const tableBody = document.getElementById('songsTableBody');
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>`;
-        const res = await runGAS('getSongsList');
-        if(res.success) { 
-            allSongs = res.songs; 
-            displaySongs(allSongs); 
-        }
-    }
-
-    async function editSong(rowId) {
-        if (rowId >= 10000) { Swal.fire('Note', 'Drive songs cannot be edited here.', 'info'); return; }
-        Swal.showLoading();
-        const res = await runGAS('getSongById', {rowId});
-        Swal.close();
-        if(res.success) loadEditForm(res);
-    }
-
-    async function handleEditFormSubmit(e) {
-        e.preventDefault();
-        const songData = {
-            rowId: document.getElementById('editRowId').value,
-            Serial_Number: document.getElementById('editSerialNo').value,
-            Title: document.getElementById('editTitle').value,
-            Author: document.getElementById('editAuthor').value,
-            Category: document.getElementById('editCategory').value,
-            Image_URL: document.getElementById('editImageUrl').value,
-            Song_URL: document.getElementById('editSongUrl').value,
-            Description: document.getElementById('editDescription').value
-        };
-        Swal.showLoading();
-        const res = await runGAS('updateSong', {songData});
-        if(res.success) {
-            Swal.fire('Updated!', res.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editSongModal')).hide();
-            fetchSongs(); refresh();
-        }
-    }
-
-    async function deleteSong(rowId, title) {
-        if (rowId >= 10000) { Swal.fire('Note', 'Drive songs cannot be deleted here.', 'info'); return; }
-        const confirm = await Swal.fire({title: 'Delete Song?', text: title, icon: 'warning', showCancelButton: true});
-        if(confirm.isConfirmed) {
-            Swal.showLoading();
-            const res = await runGAS('deleteSong', {rowId, username: currentUser});
-            if(res.success) { Swal.fire('Deleted!', '', 'success'); fetchSongs(); refresh(); }
-        }
-    }
-
-    // --- মিউজিক প্লেয়ার লজিক (হুবহু অরিজিনাল লজিক) ---
-
-    function loadAndPlaySong(index) {
-        if (index >= 0 && index < currentPlaylist.length) {
-            currentSongIndex = index;
-            const song = currentPlaylist[index];
-            updateFullPlayerUI(song);
-            audio.src = song.Song_URL;
-            audio.load();
-            audio.play().catch(e => console.log("User Interaction Required"));
-            fullPlayerScreen.style.display = 'flex';
-            updateMiniPlayerUI(true);
-        }
-    }
-
-    function togglePlayPause() {
-        if (audio.paused) audio.play(); else audio.pause();
-    }
-
-    function playNext() {
-        if (currentPlaylist.length === 0) return;
-        loadAndPlaySong((currentSongIndex + 1) % currentPlaylist.length);
-    }
-
-    function playPrev() {
-        if (currentPlaylist.length === 0) return;
-        loadAndPlaySong((currentSongIndex - 1 + currentPlaylist.length) % currentPlaylist.length);
-    }
-
-    function updateFullPlayerUI(song) {
-        playerTitleText.textContent = song.Title || 'Untitled';
-        playerArtist.textContent = song.Author || 'Unknown Artist';
-        playerArt.src = (song.Image_URL && song.Image_URL.startsWith('http')) ? song.Image_URL : DEFAULT_COVER_URL;
-        
-        // Marquee Effect: 40 অক্ষরের বেশি হলে এনিমেশন টগল হবে
-        playerTitle.classList.remove('marquee-active');
-        if (playerTitleText.textContent.length > 40) {
-            playerTitle.classList.add('marquee-active');
-        }
-        
-        currentTimeDisplay.textContent = '0:00';
-        durationDisplay.textContent = '0:00';
-        customSeekBar.value = 0;
-        updateSeekBarUI(0, 100);
-    }
-
-    function updateMiniPlayerUI(isPlaying) {
-        if (currentSongIndex !== -1 && currentPlaylist[currentSongIndex]) {
-            const song = currentPlaylist[currentSongIndex];
-            const titleText = song.Title || 'Untitled';
-            miniPlayerTitle.textContent = titleText.length > 30 ? titleText.substring(0, 27) + '...' : titleText;
-            miniPlayerArtist.textContent = song.Author;
-            miniPlayPauseBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-            miniPlayerBar.classList.add('show');
             
-            // মিনি প্লেয়ার আর্ট আপডেট
-            miniPlayerArtDiv.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = (song.Image_URL && song.Image_URL.startsWith('http')) ? song.Image_URL : DEFAULT_COVER_URL;
-            img.className = 'mini-player-art';
-            img.style.width = '100%'; img.style.height = '100%';
-            miniPlayerArtDiv.appendChild(img);
-        }
-    }
+            // অডিও কন্ট্রোল
+            audio.addEventListener('play', () => updateMiniUI(true));
+            audio.addEventListener('pause', () => updateMiniUI(false));
+            audio.addEventListener('ended', () => playNext());
+            audio.addEventListener('timeupdate', () => {
+                if(!isSeeking && !isNaN(audio.duration)) {
+                    customSeekBar.value = audio.currentTime;
+                    updateSeekBarUI(audio.currentTime, audio.duration);
+                    document.getElementById('currentTimeDisplay').textContent = formatTime(audio.currentTime);
+                    saveState();
+                }
+            });
+            audio.addEventListener('loadedmetadata', () => {
+                customSeekBar.max = audio.duration;
+                document.getElementById('durationDisplay').textContent = formatTime(audio.duration);
+            });
+            customSeekBar.addEventListener('input', () => { isSeeking = true; });
+            customSeekBar.addEventListener('change', () => { isSeeking = false; audio.currentTime = customSeekBar.value; });
 
-    // --- ইউটিলিটি এবং প্লেব্যাক Persistence ---
-
-    function formatTime(s) {
-        if (isNaN(s)) return '0:00';
-        const m = Math.floor(s/60); const sc = Math.floor(s%60);
-        return `${m}:${sc < 10 ? '0' : ''}${sc}`;
-    }
-
-    function updateSeekBarUI(c, d) {
-        const p = (c / d) * 100;
-        // অরিজিনাল কালার গ্রেডিয়েন্ট লজিক
-        customSeekBar.style.background = `linear-gradient(to right, #48b8e0 0%, #48b8e0 ${p}%, #444 ${p}%, #444 100%)`;
-    }
-
-    function addSwipeGestureToPlayer() {
-        let startX;
-        fullPlayerScreen.addEventListener('touchstart', e => startX = e.touches[0].clientX);
-        fullPlayerScreen.addEventListener('touchend', e => {
-            const diffX = e.changedTouches[0].clientX - startX;
-            if(Math.abs(diffX) > 50) diffX > 0 ? playPrev() : playNext();
+            // সোয়াইপ জেসচার
+            let startX;
+            document.getElementById('fullPlayerScreen').addEventListener('touchstart', e => startX = e.touches[0].clientX);
+            document.getElementById('fullPlayerScreen').addEventListener('touchend', e => {
+                const diff = e.changedTouches[0].clientX - startX;
+                if(Math.abs(diff) > 50) diff > 0 ? playPrev() : playNext();
+            });
         });
-    }
 
-    function savePlaybackPosition() {
-        if (!audio.paused && currentSongIndex !== -1) {
-            localStorage.setItem('lastIdx', currentSongIndex);
-            localStorage.setItem('lastPos', audio.currentTime);
+        async function refresh() {
+            showLoader(true);
+            const data = await runGAS('getBooks');
+            allBooks = data || [];
+            currentPlaylist = allBooks.filter(b => b.Song_URL && b.Song_URL.startsWith('http'));
+            renderCategories();
+            filterBy('all');
+            restoreState();
+            showLoader(false);
         }
-    }
 
-    function restorePlaybackState() {
-        const idx = localStorage.getItem('lastIdx');
-        const pos = localStorage.getItem('lastPos');
-        if(idx !== null && currentPlaylist[idx]) {
-            currentSongIndex = parseInt(idx);
+        function renderCategories() {
+            const cats = [...new Set(allBooks.map(b => b.Category).filter(Boolean))];
+            const list = document.getElementById('categoryList');
+            list.innerHTML = `<button onclick="filterBy('all', this)" class="btn btn-sm btn-outline-primary active">All</button>` +
+                cats.map(c => `<button onclick="filterBy('${c}', this)" class="btn btn-sm btn-outline-primary">${c}</button>`).join('');
+        }
+
+        function filterBy(cat, el) {
+            if(el) {
+                document.querySelectorAll('#categoryList button').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+            }
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allBooks.filter(b => {
+                const matchTerm = (b.Title + b.Author + b.Category).toLowerCase().includes(term);
+                return cat === 'all' ? matchTerm : (matchTerm && b.Category === cat);
+            });
+            renderGrid(filtered);
+        }
+
+        function applyFilters() { filterBy('all'); }
+
+        function renderGrid(data) {
+            const grid = document.getElementById('bookGrid');
+            grid.className = 'grid';
+            grid.innerHTML = data.map(b => `
+                <div class="card">
+                    <img src="${b.Image_URL || DEFAULT_IMG}" onclick="playSong('${b.rowId}')">
+                    <h3 class="mt-2 text-truncate w-100">${b.Title}</h3>
+                    <p class="small opacity-75">${b.Author}</p>
+                    <div class="d-flex gap-3 mt-2">
+                        <span onclick="handleReaction('fav', ${b.rowId})" class="cursor-pointer">${b.Favorite === 'Y' ? '💜' : '🤍'}</span>
+                        <span onclick="handleReaction('like', ${b.rowId})" class="cursor-pointer">👍 ${b.Like || 0}</span>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-white text-center w-100">No songs found.</p>';
+        }
+
+        function playSong(rowId) {
+            const idx = currentPlaylist.findIndex(b => b.rowId == rowId);
+            if(idx !== -1) {
+                currentSongIndex = idx;
+                const song = currentPlaylist[idx];
+                audio.src = song.Song_URL;
+                audio.play();
+                updateFullUI(song);
+                document.getElementById('fullPlayerScreen').style.display = 'flex';
+            }
+        }
+
+        function togglePlayPause() { audio.paused ? audio.play() : audio.pause(); }
+        function playNext() { if(currentPlaylist.length) playSong(currentPlaylist[(currentSongIndex + 1) % currentPlaylist.length].rowId); }
+        function playPrev() { if(currentPlaylist.length) playSong(currentPlaylist[(currentSongIndex - 1 + currentPlaylist.length) % currentPlaylist.length].rowId); }
+
+        function updateFullUI(song) {
+            const titleEl = document.getElementById('playerTitle');
+            titleEl.textContent = song.Title;
+            titleEl.classList.toggle('marquee-active', song.Title.length > 30);
+            document.getElementById('playerArtist').textContent = song.Author;
+            document.getElementById('playerArt').src = song.Image_URL || DEFAULT_IMG;
+            updateMiniUI(!audio.paused);
+        }
+
+        function updateMiniUI(playing) {
+            if(currentSongIndex === -1) return;
             const song = currentPlaylist[currentSongIndex];
-            updateFullPlayerUI(song);
-            audio.src = song.Song_URL;
-            audio.currentTime = parseFloat(pos || 0);
-            updateMiniPlayerUI(false);
+            document.getElementById('miniPlayerBar').style.display = 'flex';
+            document.getElementById('miniPlayerTitle').textContent = song.Title;
+            document.getElementById('miniPlayerArtist').textContent = song.Author;
+            document.getElementById('miniPlayIcon').className = playing ? 'fas fa-pause' : 'fas fa-play';
+            document.getElementById('miniPlayerArt').innerHTML = `<img src="${song.Image_URL || DEFAULT_IMG}" width="100%">`;
+            document.getElementById('playPauseBtn').innerHTML = `<i class="fas ${playing ? 'fa-pause-circle' : 'fa-play-circle'} fa-5x"></i>`;
         }
-    }
 
-    // --- ডিজাইন এবং ভিউ ম্যানেজমেন্ট (হুবহু রাখা হয়েছে) ---
-
-    function updateCurrentDate() {
-        const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        if(document.getElementById('currentDate')) {
-            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+        async function handleReaction(type, rowId) {
+            if(rowId >= 10000) return Swal.fire('Error', 'Drive reaction not allowed', 'info');
+            if(!isUserLoggedIn) return Swal.fire('Error', 'Login Required', 'warning');
+            await runGAS('updateFeedback', { rowId, type });
+            refresh();
         }
-    }
 
-    function checkSavedLogin() {
-        const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (saved) {
-            const data = JSON.parse(saved);
-            if (new Date() < new Date(data.expiry)) { applyLoginData(data); return; }
-        }
-        applyGuestData();
-    }
+        // --- AUTH & SECTIONS ---
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await runGAS('authenticateUser', { username: document.getElementById('username').value, password: document.getElementById('password').value });
+            if(res.success) { localStorage.setItem(AUTH_KEY, JSON.stringify(res)); location.reload(); }
+            else Swal.fire('Error', res.message, 'error');
+        };
 
-    function applyLoginData(data) {
-        currentUser = data.username; currentUserRole = data.role;
-        isAdmin = (data.role === 'ALL'); isUserLoggedIn = true;
-        document.getElementById('currentUsername').textContent = currentUser;
-        document.getElementById('topHeaderUsername').textContent = currentUser;
-        updateUIForUserRole();
-    }
-
-    function applyGuestData() {
-        currentUser = 'Guest'; currentUserRole = 'GUEST';
-        isAdmin = false; isUserLoggedIn = false;
-        updateUIForUserRole();
-    }
-
-    function updateUIForUserRole() {
-        document.querySelectorAll('.logged-in-only').forEach(el => el.style.display = isUserLoggedIn ? '' : 'none');
-        document.getElementById('addSongsNav')?.classList.toggle('d-none', !isAdmin);
-        document.getElementById('listSongsNav')?.classList.toggle('d-none', !isAdmin);
-        document.getElementById('loginButtonText').textContent = isUserLoggedIn ? 'Logout' : 'Admin Login';
-    }
-
-    function showDashboard(force) {
-        document.getElementById('loginScreen').classList.add('d-none');
-        document.getElementById('dashboard').classList.remove('d-none');
-        updateUIForUserRole();
-        if(force) showSection('overview', document.querySelector('.nav-link[onclick*="overview"]'));
-    }
-
-    function showSection(name, el) {
-        document.querySelectorAll('.section-content').forEach(s => s.classList.add('d-none'));
-        document.getElementById(name).classList.remove('d-none');
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        if(el) el.classList.add('active');
-        if(window.innerWidth < 768) toggleSidebar();
-        if(name === 'list-songs') fetchSongs();
-        fullPlayerScreen.style.display = 'none';
-    }
-
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('show');
-        document.querySelector('.mobile-overlay').classList.toggle('show');
-    }
-
-    function renderCategories() {
-        const categories = {};
-        allBooks.forEach(b => { if(b.Category) categories[b.Category] = (categories[b.Category] || 0) + 1; });
-        categoryList.innerHTML = '';
-        Object.keys(categories).sort().forEach(cat => {
-            const btn = document.createElement('button');
-            btn.textContent = `${cat} (${categories[cat]})`;
-            btn.onclick = (e) => {
-                currentFilter = 'category'; currentCategory = cat;
-                document.querySelectorAll('.categories button').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                applyFilters();
-            };
-            categoryList.appendChild(btn);
-        });
-    }
-
-    function filterBy(type, el) {
-        currentFilter = type; currentCategory = '';
-        document.querySelectorAll('.categories button').forEach(b => b.classList.remove('active'));
-        if(el) el.classList.add('active');
-        applyFilters();
-    }
-
-    function applyFilters() {
-        const term = searchInput.value.toLowerCase();
-        let filtered = allBooks.filter(b => {
-            const match = `${b.Title} ${b.Author} ${b.Category}`.toLowerCase().includes(term);
-            if(currentFilter === 'fav') return match && b.Favorite === 'Y';
-            if(currentFilter === 'category') return match && b.Category === currentCategory;
-            return match;
-        });
-        
-        currentPlaylist = filtered.filter(b => b.Song_URL && b.Song_URL.startsWith('http'));
-        
-        // ভিউ মোড লজিক: All/Fav এর জন্য List View, বাকিদের জন্য Grid View
-        const isListView = currentFilter === 'all' || currentFilter === 'fav';
-        bookGrid.className = isListView ? 'song-list-container' : 'grid';
-        bookGrid.innerHTML = '';
-
-        if (!filtered.length) { bookGrid.innerHTML = '<p class="text-center w-100 p-5">No songs found.</p>'; return; }
-
-        filtered.forEach((b, index) => {
-            if (isListView) {
-                const item = document.createElement('div');
-                item.className = 'song-list-item';
-                item.onclick = () => loadAndPlaySong(currentPlaylist.indexOf(b));
-                item.innerHTML = `
-                    <div class="serial">${index + 1}</div>
-                    <div class="icon"><i class="fas fa-music"></i></div>
-                    <div class="title-info"><h4>${b.Title}</h4><p>${b.Author}</p></div>
-                    <div class="actions" onclick="event.stopPropagation()">
-                        <div class="reaction fav-reaction" onclick="handleReaction('fav', ${b.rowId})">
-                            <span class="emoji">${b.Favorite === 'Y' ? '💜' : '🤍'}</span>
-                        </div>
-                    </div>`;
-                bookGrid.appendChild(item);
+        function checkAuth() {
+            const saved = localStorage.getItem(AUTH_KEY);
+            if(saved) {
+                const data = JSON.parse(saved);
+                isUserLoggedIn = true;
+                isAdmin = data.role === 'ALL';
+                document.getElementById('topHeaderUsername').textContent = data.username;
+                document.getElementById('loginScreen').classList.add('d-none');
+                document.getElementById('dashboard').classList.remove('d-none');
+                document.getElementById('adminPanel').classList.toggle('d-none', !isAdmin);
             } else {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <img src="${b.Image_URL && b.Image_URL.startsWith('http') ? b.Image_URL : DEFAULT_COVER_URL}" onclick="loadAndPlaySong(${currentPlaylist.indexOf(b)})" class="playable">
-                    <h3>${b.Title}</h3>
-                    <div class="author">${b.Author}</div>
-                    <div class="actions">
-                        <div class="reaction fav-reaction" onclick="handleReaction('fav', ${b.rowId})">
-                            <span class="emoji">${b.Favorite === 'Y' ? '💜' : '🤍'}</span>
-                        </div>
-                        <div class="reaction" onclick="handleReaction('like', ${b.rowId})">
-                            <span class="emoji">👍</span><span class="count">${b.Like || 0}</span>
-                        </div>
-                    </div>`;
-                bookGrid.appendChild(card);
+                document.getElementById('loginScreen').classList.remove('d-none');
             }
-        });
-    }
+        }
 
-    function showPlayerScreen(el) {
-        fullPlayerScreen.style.display = 'flex';
-        miniPlayerBar.classList.remove('show');
-        if(currentSongIndex === -1 && currentPlaylist.length > 0) loadAndPlaySong(0);
-        if(window.innerWidth < 768) toggleSidebar();
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        if(el) el.classList.add('active');
-    }
+        function logout() { localStorage.removeItem(AUTH_KEY); location.reload(); }
+        function showSection(id, el) {
+            document.querySelectorAll('.section-content').forEach(s => s.classList.add('d-none'));
+            document.getElementById(id).classList.remove('d-none');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            if(el) el.classList.add('active');
+            if(id === 'list-songs') fetchSongs();
+        }
 
-    function closePlayer() {
-        fullPlayerScreen.style.display = 'none';
-        updateMiniPlayerUI(!audio.paused);
-        showSection('overview', document.querySelector('.nav-link[onclick*="overview"]'));
-    }
+        async function fetchSongs() {
+            const res = await runGAS('getSongsList');
+            document.getElementById('songsTableBody').innerHTML = res.songs.map(s => `
+                <tr><td>${s.serialNo}</td><td>${s.title}</td><td>${s.author}</td>
+                <td><button onclick="editSong(${s.rowId})" class="btn btn-sm btn-info">Edit</button>
+                <button onclick="deleteSong(${s.rowId})" class="btn btn-sm btn-danger">Delete</button></td></tr>`).join('');
+        }
 
-    function logout() {
-        Swal.fire({title: 'Logout?', icon: 'warning', showCancelButton: true}).then(r => {
-            if(r.isConfirmed) {
-                localStorage.removeItem(AUTH_STORAGE_KEY);
-                localStorage.removeItem('lastIdx');
-                localStorage.removeItem('lastPos');
-                location.reload();
+        async function editSong(rowId) {
+            const res = await runGAS('getSongById', {rowId});
+            if(res.success) {
+                const s = res.song;
+                document.getElementById('editRowId').value = s.rowId;
+                document.getElementById('editTitle').value = s.title;
+                document.getElementById('editAuthor').value = s.author;
+                document.getElementById('editCategory').value = s.category;
+                document.getElementById('editSongUrl').value = s.songUrl;
+                new bootstrap.Modal(document.getElementById('editSongModal')).show();
             }
-        });
-    }
+        }
 
-    function showAndHideCircle(s, t) {
-        loadingCircle.classList.toggle('hidden', !s);
-        if(s && t) document.getElementById('overviewLoadingText').textContent = t;
-    }
+        document.getElementById('songForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const songData = { serialNo: document.getElementById('serialNo').value, title: document.getElementById('title').value, author: document.getElementById('author').value, category: document.getElementById('category').value, songUrl: document.getElementById('songUrl').value, imageUrl: document.getElementById('imageUrl').value };
+            await runGAS('addSong', { songData });
+            Swal.fire('Success', 'Song added', 'success');
+            refresh();
+        };
 
-    function saveLoginData(data) {
-        const expiry = new Date(); expiry.setDate(expiry.getDate() + LOGIN_EXPIRY_DAYS);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({...data, expiry: expiry.toISOString()}));
-    }
-
-    function loadEditForm(res) {
-        const s = res.song;
-        document.getElementById('editRowId').value = s.rowId;
-        document.getElementById('editSerialNo').value = s.serialNo;
-        document.getElementById('editTitle').value = s.title;
-        document.getElementById('editAuthor').value = s.author;
-        document.getElementById('editCategory').value = s.category;
-        document.getElementById('editImageUrl').value = s.imageUrl;
-        document.getElementById('editSongUrl').value = s.songUrl;
-        document.getElementById('editDescription').value = s.description;
-        new bootstrap.Modal(document.getElementById('editSongModal')).show();
-    }
-
-    function showLoginScreen(el) {
-        if(isUserLoggedIn) { logout(); return; }
-        document.getElementById('dashboard').classList.add('d-none');
-        document.getElementById('loginScreen').classList.remove('d-none');
-    }
-
-    function displaySongs(songsToDisplay) {
-        const tableBody = document.getElementById('songsTableBody');
-        tableBody.innerHTML = '';
-        songsToDisplay.forEach(song => {
-            const row = tableBody.insertRow();
-            row.innerHTML = `
-                <td>${song.serialNo || ''}</td>
-                <td>${song.title}</td>
-                <td>${song.author}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-info" onclick="editSong(${song.rowId})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSong(${song.rowId}, '${song.title.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
-                </td>`;
-        });
-    }
-</script>
+        function showLoader(s) { document.getElementById('loadingCircle').classList.toggle('d-none', !s); }
+        function formatTime(s) { const m = Math.floor(s/60); const sc = Math.floor(s%60); return `${m}:${sc<10?'0':''}${sc}`; }
+        function updateSeekBarUI(c, d) { const p = (c/d)*100; customSeekBar.style.background = `linear-gradient(to right, #48b8e0 ${p}%, #444 ${p}%)`; }
+        function closePlayer() { document.getElementById('fullPlayerScreen').style.display = 'none'; }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); document.querySelector('.mobile-overlay').classList.toggle('show'); }
+        function showPlayerScreen() { document.getElementById('fullPlayerScreen').style.display = 'flex'; }
+        function saveState() { localStorage.setItem('lastIdx', currentSongIndex); localStorage.setItem('lastPos', audio.currentTime); }
+        function restoreState() {
+            const idx = localStorage.getItem('lastIdx');
+            if(idx !== null && currentPlaylist[idx]) {
+                currentSongIndex = parseInt(idx);
+                const song = currentPlaylist[currentSongIndex];
+                audio.src = song.Song_URL;
+                audio.currentTime = parseFloat(localStorage.getItem('lastPos') || 0);
+                updateFullUI(song);
+            }
+        }
+    </script>
+</body>
+</html>
